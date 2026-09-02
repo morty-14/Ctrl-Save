@@ -1,0 +1,96 @@
+@model List<Ctrl_Save.Models.Product>
+
+@{
+    ViewData["Title"] = "Phone";
+}
+
+<div class="cs-breadcrumb">
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Phone</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="cs-section-header">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
+        <div>
+            <h2><i class=""></i>PHONE</h2>
+            <p>Stay connected to those you care about and more.</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-none d-md-flex gap-3 align-items-center" style="font-size: 2.5rem; color: var(--cs-green);">
+                <i class="bi bi-phone"></i> <i class="bi bi-sim"></i> <i class="bi bi-wifi"></i>
+            </div>
+            <select class="cs-filter-select" id="sortSelect" onchange="sortProducts()">
+                <option value="default">Sort by</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="alpha">Alphabetical</option>
+            </select>
+            <div class="cs-view-toggle">
+                <button class="cs-view-btn active" id="gridBtn" onclick="setView('grid')" title="Grid view"><i class="bi bi-grid"></i></button>
+                <button class="cs-view-btn" id="listBtn" onclick="setView('list')" title="List view"><i class="bi bi-list-ul"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="cs-product-grid" id="productGrid">
+    <div class="container-fluid">
+        <div class="row g-3" id="productRow">
+            @foreach (var product in Model)
+            {
+                var priceNum = product.Price.Replace("N$", "").Replace(",", "");
+                <div class="col-6 col-sm-4 col-md-3 cs-product-item"
+                     data-name="@product.Name"
+                     data-price="@priceNum">
+                    <a asp-controller="Phone" asp-action="Detail" asp-route-id="@product.ProductId" class="text-decoration-none">
+                        <div class="cs-product-card">
+                            <img src="~/images/products/phone/@product.Image" alt="@product.Name" />
+                            <div class="card-body">
+                                <div class="card-title">@product.Name</div>
+                                <div class="card-price">@product.Price</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setView(view) {
+            const grid = document.getElementById('productGrid');
+            const gridBtn = document.getElementById('gridBtn');
+            const listBtn = document.getElementById('listBtn');
+            if (view === 'list') {
+                grid.classList.add('list-view');
+                listBtn.classList.add('active');
+                gridBtn.classList.remove('active');
+            } else {
+                grid.classList.remove('list-view');
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            }
+        }
+
+        function sortProducts() {
+            const sortValue = document.getElementById('sortSelect').value;
+            const row = document.getElementById('productRow');
+            const items = Array.from(row.querySelectorAll('.cs-product-item'));
+            items.sort((a, b) => {
+                if (sortValue === 'price-asc') return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+                if (sortValue === 'price-desc') return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+                if (sortValue === 'alpha') return a.dataset.name.localeCompare(b.dataset.name);
+                return 0;
+            });
+            items.forEach(item => row.appendChild(item));
+        }
+    </script>
+}

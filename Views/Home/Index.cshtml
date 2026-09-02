@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Home";
+}
+
+<!-- HERO SECTION -->
+<div class="cs-hero">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <h1>CTRL+SAVE</h1>
+                <p class="subtitle">Committed to Quality Savings</p>
+                <p>You can definitely find your something old, something new, something borrowed, something blue here.<br />
+                   All pre-owned items are checked and include a 1-year warranty plus our seal of approval.</p>
+            </div>
+            <div class="col-md-5 d-none d-md-flex justify-content-center align-items-start" style="position:relative; height:130px;">
+                <img src="~/images/approved seal.png" alt="Approved Seal" class="cs-banner-img cs-banner-top" />
+                <img src="~/images/interest.png" alt="Interest Rate" class="cs-banner-img cs-banner-bottom" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CATEGORY STRIP -->
+<div class="cs-category-strip" id="categories">
+    <div class="container">
+        <h5 class="text-center fw-bold mb-4" style="color: var(--cs-green);">SHOP SAVINGS TODAY</h5>
+        <div class="row justify-content-center g-4">
+            <div class="col-6 col-sm-3 text-center">
+                <a asp-controller="Gaming" asp-action="Index" class="cs-category-item">
+                    <div class="cs-category-icon-img">
+                        <img src="~/images/gaming.jpg" alt="Gaming" />
+                    </div>
+                    <span>GAMING</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-3 text-center">
+                <a asp-controller="Laptop" asp-action="Index" class="cs-category-item">
+                    <div class="cs-category-icon-img">
+                        <img src="~/images/laptop.jpg" alt="Laptops" />
+                    </div>
+                    <span>LAPTOP</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-3 text-center">
+                <a asp-controller="Phone" asp-action="Index" class="cs-category-item">
+                    <div class="cs-category-icon-img">
+                        <img src="~/images/phone.jpg" alt="Phones" />
+                    </div>
+                    <span>PHONE</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-3 text-center">
+                <a asp-controller="Camera" asp-action="Index" class="cs-category-item">
+                    <div class="cs-category-icon-img">
+                        <img src="~/images/camera.png" alt="Cameras" />
+                    </div>
+                    <span>CAMERA</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

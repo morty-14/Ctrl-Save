@@ -1,0 +1,130 @@
+@model List<Ctrl_Save.Controllers.CartItem>
+
+@{
+    ViewData["Title"] = "Your Cart";
+}
+
+<div class="cs-breadcrumb">
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item active">Cart</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container cs-cart-page">
+    <h1 class="cs-cart-title"><i class="bi bi-cart3 me-2"></i>Your Cart</h1>
+
+    @if (!Model.Any())
+    {
+        <div class="cs-cart-empty">
+            <i class="bi bi-cart-x"></i>
+            <p>Your cart is empty.</p>
+            <a asp-controller="Home" asp-action="Index" class="cs-btn">Browse Products</a>
+        </div>
+    }
+    else
+    {
+        <div class="cs-cart-items" id="cartItems">
+            @foreach (var item in Model)
+            {
+                var priceNum = decimal.Parse(item.Price.Replace("N$", "").Replace(",", ""));
+                <div class="cs-cart-item" id="cart-item-@item.Id" data-price="@priceNum">
+                    <img src="~/images/products/@item.Category/@item.Image" alt="@item.Name" />
+                    <div class="cs-cart-item-info">
+                        <div class="cs-cart-item-name">@item.Name</div>
+                        <div class="cs-cart-item-price" id="price-@item.Id">@item.Price</div>
+                    </div>
+                    <div class="cs-qty-control">
+                        <button class="cs-qty-btn" onclick="changeQty('@item.Id', -1)"><i class="bi bi-dash"></i></button>
+                        <span class="cs-qty-value" id="qty-@item.Id">@item.Quantity</span>
+                        <button class="cs-qty-btn" onclick="changeQty('@item.Id', 1)"><i class="bi bi-plus"></i></button>
+                    </div>
+                    <button class="cs-cart-remove" onclick="removeFromCart('@item.Id')">
+                        <i class="bi bi-trash"></i> Remove
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="cs-cart-summary">
+            <div class="cs-cart-total">
+                <span>Total</span>
+                <span id="cartTotal">N$@Model.Sum(i => decimal.Parse(i.Price.Replace("N$", "").Replace(",", "")) * i.Quantity).ToString("N0")</span>
+            </div>
+            <a asp-controller="Cart" asp-action="Checkout" class="cs-btn cs-checkout-btn">
+                <i class="bi bi-credit-card me-2"></i>Proceed to Checkout
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function changeQty(id, delta) {
+            const qtyEl = document.getElementById('qty-' + id);
+            const priceEl = document.getElementById('price-' + id);
+            const itemEl = document.getElementById('cart-item-' + id);
+            const basePrice = parseFloat(itemEl.dataset.price);
+
+            let qty = parseInt(qtyEl.textContent) + delta;
+            if (qty < 1) qty = 1;
+
+            qtyEl.textContent = qty;
+            const itemTotal = basePrice * qty;
+            priceEl.textContent = 'N$' + itemTotal.toLocaleString('en-ZA', { minimumFractionDigits: 0 });
+
+            // Update server-side quantity
+            fetch('/Cart/UpdateQty', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `id=${encodeURIComponent(id)}&qty=${qty}`
+            })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('cartBadge').textContent = data.count;
+                updateTotal();
+            });
+        }
+
+        function updateTotal() {
+            let total = 0;
+            document.querySelectorAll('.cs-cart-item').forEach(item => {
+                const basePrice = parseFloat(item.dataset.price);
+                const qty = parseInt(item.querySelector('.cs-qty-value').textContent);
+                total += basePrice * qty;
+            });
+            document.getElementById('cartTotal').textContent = 'N$' + total.toLocaleString('en-ZA', { minimumFractionDigits: 0 });
+        }
+
+        function removeFromCart(id) {
+            fetch('/Cart/Remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id=' + encodeURIComponent(id)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const el = document.getElementById('cart-item-' + id);
+                    el.style.transition = 'opacity 0.3s';
+                    el.style.opacity = '0';
+                    setTimeout(() => {
+                        el.remove();
+                        document.getElementById('cartBadge').textContent = data.count;
+                        updateTotal();
+                        checkEmpty();
+                    }, 300);
+                }
+            });
+        }
+
+        function checkEmpty() {
+            const items = document.querySelectorAll('.cs-cart-item');
+            if (items.length === 0) location.reload();
+        }
+    </script>
+}

@@ -1,0 +1,70 @@
+@model Ctrl_Save.Controllers.CheckoutViewModel
+
+@{
+    ViewData["Title"] = "Order Confirmed";
+}
+
+<div class="container cs-confirmation-page">
+    <div class="cs-confirmation-header">
+        <i class="bi bi-check-circle-fill cs-confirmation-icon"></i>
+        <h1>Order Placed!</h1>
+        <p>We'll be in touch soon to confirm your delivery.</p>
+    </div>
+
+    <div class="cs-invoice">
+        <div class="cs-invoice-header">
+            <div>
+                <div class="cs-invoice-brand">CTRL + SAVE</div>
+                <div class="cs-invoice-sub">Order Invoice</div>
+            </div>
+            <div class="text-end">
+                <div class="cs-invoice-number">@Model.OrderNumber</div>
+                <div class="cs-invoice-date">@Model.OrderDate</div>
+            </div>
+        </div>
+
+        <div class="cs-invoice-details">
+            <div class="cs-invoice-section">
+                <h6>Delivery Details</h6>
+                <p>@Model.FirstName @Model.LastName</p>
+                <p>@Model.Address, @Model.City</p>
+                <p>@Model.Region</p>
+                <p>@Model.Phone</p>
+            </div>
+            <div class="cs-invoice-section">
+                <h6>Payment Method</h6>
+                <p>@Model.PaymentMethod</p>
+                @if (Model.PaymentMethod == "EFT")
+                {
+                    <p class="text-muted" style="font-size:0.85rem;">Contact <strong>+264 81 000 0000</strong> for payment details.</p>
+                }
+            </div>
+        </div>
+
+        <div class="cs-invoice-items">
+            <h6>Items Ordered</h6>
+            @foreach (var item in Model.Items)
+            {
+                <div class="cs-invoice-item-row">
+                    <img src="~/images/products/@item.Category/@item.Image" alt="@item.Name" class="cs-invoice-item-img" />
+                    <div class="cs-invoice-item-info">
+                        <div class="cs-invoice-item-name">@item.Name</div>
+                        <div class="cs-invoice-item-price">@item.Price</div>
+                    </div>
+                </div>
+            }
+            <div class="cs-invoice-item cs-invoice-total">
+                <span>Total</span>
+                <span>N$@Model.OrderTotal.ToString("N0")</span>
+            </div>
+        </div>
+
+        <div class="cs-invoice-footer">
+            Thank you for shopping with Ctrl + Save. We'll contact you at @Model.Phone when your order is on its way.
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <a asp-controller="Home" asp-action="Index" class="cs-btn">Continue Shopping</a>
+    </div>
+</div>

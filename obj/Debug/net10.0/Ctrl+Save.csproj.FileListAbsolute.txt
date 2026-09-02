@@ -1,0 +1,10 @@
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.csproj.AssemblyReference.cache
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\rpswa.dswa.cache.json
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.AssemblyInfoInputs.cache
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.AssemblyInfo.cs
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.csproj.CoreCompileInputs.cache
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.RazorAssemblyInfo.cache
+C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\Ctrl+Save.RazorAssemblyInfo.cs

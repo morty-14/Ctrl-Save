@@ -1,0 +1,61 @@
+@model Ctrl_Save.Models.ContactDto
+
+@{
+    ViewData["Title"] = "Contact Us";
+}
+
+<div class="cs-contact-page">
+    <div class="text-center mb-3">
+       
+    </div>
+    <h1>CONTACT US</h1>
+
+    <div class="cs-contact-info">
+        <p class="mb-1"><strong>If you ever need help at any point of your shopping experience, reach out to us via:</strong></p>
+        <p class="mb-1"><strong>Email:</strong> @ViewData["EmailAddress"]</p>
+        <p class="mb-1"><strong>Phone/WhatsApp:</strong>+264 81 287 5783</p>
+        <p class="mb-1"><strong>Address:</strong> @ViewBag.Address</p>
+        <p class="mb-1"><strong>Response time:</strong> We aim to get back to you in less than 24 hours.</p>
+        <p class="mb-0"><strong>Hours:</strong> Monday – Friday, 8am – 5pm.</p>
+    </div>
+
+    @if (ViewBag.SuccessMessage != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>@ViewBag.SuccessMessage</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form method="post">
+        <div class="mb-3">
+            <label class="form-label">First Name*</label>
+            <input class="form-control" asp-for="FirstName" />
+            <span asp-validation-for="FirstName" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Last Name*</label>
+            <input class="form-control" asp-for="LastName" />
+            <span asp-validation-for="LastName" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email*</label>
+            <input class="form-control" asp-for="Email" />
+            <span asp-validation-for="Email" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Message*</label>
+            <textarea class="form-control" asp-for="Message" rows="4"></textarea>
+            <span asp-validation-for="Message" class="text-danger small"></span>
+        </div>
+        <button type="submit" class="cs-btn w-100">Send Message</button>
+    </form>
+
+    <div class="text-center mt-4">
+        <a asp-controller="Support" asp-action="Index" class="cs-btn">Back to Support Hub</a>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

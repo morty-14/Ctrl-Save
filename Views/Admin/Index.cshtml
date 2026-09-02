@@ -1,0 +1,62 @@
+@model List<Ctrl_Save.Models.Order>
+
+@{
+    ViewData["Title"] = "Admin Panel";
+}
+
+<div class="cs-breadcrumb">
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item active">Admin Panel</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container cs-content-page">
+    <h1><i class="bi bi-speedometer2 me-2"></i>Admin Panel</h1>
+    <p class="text-muted">Logged in as <strong>@User.Identity?.Name</strong></p>
+
+    <h5 class="mt-4 mb-3">Recent Orders</h5>
+
+    @if (!Model.Any())
+    {
+        <p class="text-muted">No orders yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead style="background-color: var(--cs-green-pale);">
+                    <tr>
+                        <th>Order Number</th>
+                        <th>Customer</th>
+                        <th>City</th>
+                        <th>Region</th>
+                        <th>Payment</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        <tr>
+                            <td><small>@order.OrderNumber</small></td>
+                            <td>@order.FirstName @order.LastName</td>
+                            <td>@order.City</td>
+                            <td>@order.Region</td>
+                            <td>@order.PaymentMethod</td>
+                            <td>@order.Items.Count</td>
+                            <td style="color: var(--cs-green); font-weight: 700;">N$@order.OrderTotal.ToString("N0")</td>
+                            <td><small>@order.OrderDate.ToString("dd MMM yyyy HH:mm")</small></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

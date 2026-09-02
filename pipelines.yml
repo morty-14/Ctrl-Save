@@ -1,0 +1,66 @@
+# This pipeline makes it possible that each time code is pushed to Azure DevOps, the 
+# application is built automatically and checks that there are no errors. Once built
+# successfully, the application is deployed automatically
+# Triggers on every push to main branch
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '10.x'
+
+stages:
+  - stage: Build
+    displayName: 'Build Stage'
+    jobs:
+      - job: Build
+        displayName: 'Restore, Build & Publish'
+        steps:
+
+          # .NET 10 is installed
+          - task: UseDotNet@2
+            displayName: 'Install .NET $(dotnetVersion)'
+            inputs:
+              packageType: 'sdk'
+              version: '$(dotnetVersion)'
+
+          # NuGet packages are restored
+          - task: DotNetCoreCLI@2
+            displayName: 'Restore Packages'
+            inputs:
+              command: 'restore'
+              projects: '**/*.csproj'
+              feedsToUse: 'select'
+              vstsFeed: ''
+              includeNuGetOrg: true
+
+          # Project is built
+          - task: DotNetCoreCLI@2
+            displayName: 'Build Project'
+            inputs:
+              command: 'build'
+              projects: '**/*.csproj'
+              arguments: '--configuration $(buildConfiguration) --no-restore'
+
+          # The application is published
+          - task: DotNetCoreCLI@2
+            displayName: 'Publish Project'
+            inputs:
+              command: 'publish'
+              projects: '**/*.csproj'
+              arguments: '--configuration $(buildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)'
+              publishWebProjects: true
+
+          # The build artifact is uploaded
+          - task: PublishBuildArtifacts@1
+            displayName: 'Upload Build Artifact'
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: 'CtrlSave-Drop'
+              publishLocation: 'Container'

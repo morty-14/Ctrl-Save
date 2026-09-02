@@ -1,0 +1,44 @@
+@{
+    ViewData["Title"] = "Support Hub";
+}
+
+<div class="cs-support-hero">
+    <img src="~/images/supprt_hub.jpg" alt="Support Hub" style="width:80px; height:80px; object-fit:contain;" />
+    <h1 class="mt-2">Support Hub</h1>
+    <p class="text-muted">How can we help?</p>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-3 justify-content-center" style="max-width: 700px; margin: 2rem auto 0;">
+        <div class="col-6 col-sm-4">
+            <a asp-controller="Support" asp-action="Faqs" class="cs-support-icon-card">
+                <img src="~/images/faq.jpg" alt="FAQs" style="width:60px; height:60px; object-fit:contain;" />
+                <span>FAQs</span>
+            </a>
+        </div>
+        <div class="col-6 col-sm-4">
+            <a asp-controller="Support" asp-action="BuyingHelp" class="cs-support-icon-card">
+                <img src="~/images/buying.jpg" alt="Buying Help" style="width:60px; height:60px; object-fit:contain;" />
+                <span>BUYING HELP</span>
+            </a>
+        </div>
+        <div class="col-6 col-sm-4">
+            <a asp-controller="Support" asp-action="Orders" class="cs-support-icon-card">
+                <img src="~/images/orders.jpg" alt="Orders" style="width:60px; height:60px; object-fit:contain;" />
+                <span>ORDERS</span>
+            </a>
+        </div>
+        <div class="col-6 col-sm-4">
+            <a asp-controller="Support" asp-action="Warranty" class="cs-support-icon-card">
+                <img src="~/images/warranty.png" alt="Warranty" style="width:60px; height:60px; object-fit:contain;" />
+                <span>WARRANTY</span>
+            </a>
+        </div>
+        <div class="col-6 col-sm-4">
+            <a asp-controller="Contact" asp-action="Index" class="cs-support-icon-card">
+                <img src="~/images/contact_us.png" alt="Contact Us" style="width:60px; height:60px; object-fit:contain;" />
+                <span>CONTACT US</span>
+            </a>
+        </div>
+    </div>
+</div>

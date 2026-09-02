@@ -1,0 +1,62 @@
+@model List<Ctrl_Save.Models.Product>
+
+@{
+    ViewData["Title"] = "Search Results";
+    var query = ViewData["Query"]?.ToString() ?? "";
+}
+
+<div class="cs-breadcrumb">
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item active">Search</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container cs-search-page">
+    <h1 class="cs-search-title">
+        @if (!string.IsNullOrEmpty(query))
+        {
+            <span>Results for "<strong>@query</strong>"</span>
+        }
+        else
+        {
+            <span>Search</span>
+        }
+    </h1>
+
+    @if (!string.IsNullOrEmpty(query) && !Model.Any())
+    {
+        <div class="cs-search-empty">
+            <i class="bi bi-search"></i>
+            <p>No products found for "<strong>@query</strong>".</p>
+            <p class="text-muted">Try searching by brand (e.g. "Sony", "Canon", "Nintendo") or product type.</p>
+            <a asp-controller="Home" asp-action="Index" class="cs-btn mt-2">Browse All Products</a>
+        </div>
+    }
+    else if (Model.Any())
+    {
+        <p class="cs-search-count">@Model.Count result@(Model.Count == 1 ? "" : "s") found</p>
+        <div class="row g-3">
+            @foreach (var product in Model)
+            {
+                var controllerName = char.ToUpper(product.Category[0]) + product.Category.Substring(1);
+                <div class="col-6 col-sm-4 col-md-3">
+                    <a asp-controller="@controllerName" asp-action="Detail" asp-route-id="@product.ProductId" class="text-decoration-none">
+                        <div class="cs-product-card">
+                            <img src="~/images/products/@product.Category/@product.Image" alt="@product.Name" />
+                            <div class="card-body">
+                                <div class="cs-search-category-tag">@controllerName</div>
+                                <div class="card-title">@product.Name</div>
+                                <div class="card-price">@product.Price</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    }
+</div>
