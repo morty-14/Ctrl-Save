@@ -5,8 +5,11 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Logs;
+using Ctrl_Save.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,15 +24,11 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddSqlClientInstrumentation(options =>
-        {
-            options.SetDbStatementForText = true;
-        })
+        .AddSqlClientInstrumentation()
         .AddConsoleExporter())
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation()
         .AddPrometheusExporter());
 
 builder.Logging.AddOpenTelemetry(logging =>
@@ -55,8 +54,9 @@ builder.Services.AddAuthentication(options =>
 {
     options.Cookie.Name = "CtrlSaveAuth";
     options.ExpireTimeSpan = TimeSpan.FromHours(1);
-    options.LoginPath = "/auth/login";
-    options.LogoutPath = "/auth/logout";
+    options.LoginPath = "/Auth/Login";
+    options.LogoutPath = "/Auth/Logout";
+    options.AccessDeniedPath = "/Auth/AccessDenied";
 })
 .AddOpenIdConnect(options =>
 {
@@ -66,6 +66,7 @@ builder.Services.AddAuthentication(options =>
     options.ResponseType = OpenIdConnectResponseType.Code;
     options.SaveTokens = true;
     options.GetClaimsFromUserInfoEndpoint = true;
+    options.MapInboundClaims = false;
     options.RequireHttpsMetadata = false;
 
     options.Scope.Add("openid");
@@ -74,8 +75,30 @@ builder.Services.AddAuthentication(options =>
     options.Scope.Add("roles");
 
     options.TokenValidationParameters.NameClaimType = "preferred_username";
-    options.TokenValidationParameters.RoleClaimType = "roles";
+    options.TokenValidationParameters.RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+
+    options.Events = new OpenIdConnectEvents
+    {
+        OnRedirectToIdentityProviderForSignOut = context =>
+        {
+            context.Response.Cookies.Delete("CtrlSaveCart");
+            context.Response.Cookies.Delete(".AspNetCore.Session");
+            return Task.CompletedTask;
+        }
+    };
 });
+
+// ===== SWAGGER =====
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Ctrl + Save API", Version = "v1", Description = "API documentation for the Ctrl + Save second-hand electronics platform" });
+    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+});
+
+// ===== HEALTH CHECKS =====
+builder.Services.AddHealthChecks()
+    .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 builder.Services.AddAuthorization();
 
@@ -106,6 +129,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ===== MIDDLEWARE =====
+app.UseMiddleware<GlobalExceptionHandler>();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -114,12 +139,40 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+// ===== SWAGGER UI =====
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ctrl + Save API v1");
+    c.RoutePrefix = "swagger";
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 app.MapStaticAssets();
 
 app.MapPrometheusScrapingEndpoint();
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description
+            })
+        });
+        await context.Response.WriteAsync(result);
+    }
+}).AllowAnonymous();
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",

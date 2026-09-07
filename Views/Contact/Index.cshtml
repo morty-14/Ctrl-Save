@@ -4,58 +4,169 @@
     ViewData["Title"] = "Contact Us";
 }
 
-<div class="cs-contact-page">
-    <div class="text-center mb-3">
-       
-    </div>
-    <h1>CONTACT US</h1>
-
-    <div class="cs-contact-info">
-        <p class="mb-1"><strong>If you ever need help at any point of your shopping experience, reach out to us via:</strong></p>
-        <p class="mb-1"><strong>Email:</strong> @ViewData["EmailAddress"]</p>
-        <p class="mb-1"><strong>Phone/WhatsApp:</strong>+264 81 287 5783</p>
-        <p class="mb-1"><strong>Address:</strong> @ViewBag.Address</p>
-        <p class="mb-1"><strong>Response time:</strong> We aim to get back to you in less than 24 hours.</p>
-        <p class="mb-0"><strong>Hours:</strong> Monday – Friday, 8am – 5pm.</p>
-    </div>
-
-    @if (ViewBag.SuccessMessage != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>@ViewBag.SuccessMessage</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <form method="post">
-        <div class="mb-3">
-            <label class="form-label">First Name*</label>
-            <input class="form-control" asp-for="FirstName" />
-            <span asp-validation-for="FirstName" class="text-danger small"></span>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Last Name*</label>
-            <input class="form-control" asp-for="LastName" />
-            <span asp-validation-for="LastName" class="text-danger small"></span>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Email*</label>
-            <input class="form-control" asp-for="Email" />
-            <span asp-validation-for="Email" class="text-danger small"></span>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Message*</label>
-            <textarea class="form-control" asp-for="Message" rows="4"></textarea>
-            <span asp-validation-for="Message" class="text-danger small"></span>
-        </div>
-        <button type="submit" class="cs-btn w-100">Send Message</button>
-    </form>
-
-    <div class="text-center mt-4">
-        <a asp-controller="Support" asp-action="Index" class="cs-btn">Back to Support Hub</a>
+<div class="cs-breadcrumb">
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item"><a asp-controller="Support" asp-action="Index">Support Hub</a></li>
+                <li class="breadcrumb-item active">Contact Us</li>
+            </ol>
+        </nav>
     </div>
 </div>
 
+<div class="cs-contact-page">
+    <h1>Contact Us</h1>
+    <p class="text-center text-muted mb-4">We'd love to hear from you. Fill in the form below and we'll get back to you.</p>
+
+    @if (ViewBag.SuccessMessage != null)
+    {
+        <div id="contactToast" class="cs-toast show" style="position:fixed; top:70px; right:1.5rem; z-index:9999;">
+            <div><i class="bi bi-check-circle-fill me-2"></i><span>@ViewBag.SuccessMessage</span></div>
+            <div class="d-flex align-items-center gap-2 mt-1">
+                <button class="cs-toast-close" onclick="document.getElementById('contactToast').classList.remove('show')"><i class="bi bi-x"></i></button>
+            </div>
+        </div>
+    }
+
+    <div class="cs-contact-info">
+        <i class="bi bi-envelope me-2"></i><strong>Email:</strong> @ViewData["EmailAddress"]
+        &nbsp;&nbsp;
+        <i class="bi bi-geo-alt me-2"></i><strong>Location:</strong> @ViewBag.Address
+    </div>
+
+    <form asp-action="Index" method="post" id="contactForm">
+        <p style="font-size:0.85rem; color:#888;"><span style="color:red;">*</span> Required fields</p>
+
+        <div class="row g-3">
+            <div class="col-sm-6">
+                <label class="form-label">First Name <span style="color:red;">*</span></label>
+                <input asp-for="FirstName" class="form-control" oninput="validateContact()" />
+                <span asp-validation-for="FirstName" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label">Last Name <span style="color:red;">*</span></label>
+                <input asp-for="LastName" class="form-control" oninput="validateContact()" />
+                <span asp-validation-for="LastName" class="text-danger small"></span>
+            </div>
+
+            <!-- Contact Method -->
+            <div class="col-12">
+                <label class="form-label">Preferred Contact Method <span style="color:red;">*</span></label>
+                <select asp-for="ContactMethod" class="form-select" id="contactMethod" onchange="toggleContactMethod()">
+                    <option value="email">Email Address</option>
+                    <option value="phone">Phone Number</option>
+                </select>
+            </div>
+
+            <div class="col-12" id="emailField">
+                <label class="form-label">Email Address <span style="color:red;">*</span></label>
+                <input asp-for="Email" type="email" class="form-control" placeholder="example@email.com"
+                       oninput="validateContact()" onblur="showEmailError()" />
+                <div id="emailError" class="text-danger small" style="display:none;">Please enter a valid email address (e.g. name@gmail.com)</div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="col-12" id="phoneField" style="display:none;">
+                <label class="form-label">Phone Number <span style="color:red;">*</span></label>
+                <input asp-for="Phone" type="tel" class="form-control" placeholder="+264811234567"
+                       oninput="validateContact()" onblur="showPhoneError()" />
+                <div id="phoneError" class="text-danger small" style="display:none;">Please enter a valid Namibian number starting with +26481, +26483, or +26485 followed by 7 digits (e.g. +264811234567)</div>
+                <span asp-validation-for="Phone" class="text-danger small"></span>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Message <span style="color:red;">*</span></label>
+                <textarea asp-for="Message" class="form-control" rows="5" placeholder="Write your message here..." oninput="validateContact()"></textarea>
+                <span asp-validation-for="Message" class="text-danger small"></span>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" id="sendBtn" class="cs-btn cs-btn-added w-100" disabled>
+                    <i class="bi bi-send me-2"></i>Send Message
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
 @section Scripts {
-    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        function toggleContactMethod() {
+            var method = document.getElementById('contactMethod').value;
+            document.getElementById('emailField').style.display = method === 'email' ? '' : 'none';
+            document.getElementById('phoneField').style.display = method === 'phone' ? '' : 'none';
+            validateContact();
+        }
+
+        function isValidEmail(email) {
+            var atPos = email.indexOf('\x40');
+            if (atPos < 1) return false;
+            var local = email.substring(0, atPos);
+            var domain = email.substring(atPos + 1);
+            var dotPos = domain.lastIndexOf('.');
+            if (dotPos < 1) return false;
+            var ext = domain.substring(dotPos + 1);
+            return local.length > 0 && domain.length > 3 && ext.length >= 2;
+        }
+
+        function isValidPhone(phone) {
+            var cleaned = phone.replace(/\s/g, '');
+            if (cleaned.length !== 13) return false;
+            if (cleaned.substring(0, 4) !== '+264') return false;
+            var prefix = cleaned.substring(4, 6);
+            if (prefix !== '81' && prefix !== '83' && prefix !== '85') return false;
+            var digits = cleaned.substring(6);
+            for (var i = 0; i < digits.length; i++) {
+                if (digits[i] < '0' || digits[i] > '9') return false;
+            }
+            return true;
+        }
+
+        function showEmailError() {
+            var email = document.getElementById('Email')?.value.trim();
+            var errorEl = document.getElementById('emailError');
+            if (email && !isValidEmail(email)) {
+                errorEl.style.display = '';
+            } else {
+                errorEl.style.display = 'none';
+            }
+        }
+
+        function showPhoneError() {
+            var phone = document.getElementById('Phone')?.value.trim();
+            var errorEl = document.getElementById('phoneError');
+            if (phone && phone.length >= 13 && !isValidPhone(phone)) {
+                errorEl.style.display = '';
+            } else {
+                errorEl.style.display = 'none';
+            }
+        }
+
+        function validateContact() {
+            var firstName = document.getElementById('FirstName')?.value.trim();
+            var lastName = document.getElementById('LastName')?.value.trim();
+            var method = document.getElementById('contactMethod').value;
+            var message = document.getElementById('Message')?.value.trim();
+
+            var contactValid = false;
+            if (method === 'email') {
+                var email = document.getElementById('Email')?.value.trim();
+                contactValid = isValidEmail(email);
+                showEmailError();
+            } else {
+                var phone = document.getElementById('Phone')?.value.trim();
+                contactValid = isValidPhone(phone);
+                showPhoneError();
+            }
+
+            var valid = firstName && lastName && contactValid && message;
+            var btn = document.getElementById('sendBtn');
+            btn.disabled = !valid;
+            btn.classList.toggle('cs-btn-added', !valid);
+        }
+
+        toggleContactMethod();
+    </script>
 }

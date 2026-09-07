@@ -32,9 +32,22 @@ namespace Ctrl_Save.Services
             "budget", "premium", "gaming headset", "mirrorless", "smartphone"
         };
 
+        private static readonly string[] StreetNames = {
+            "Tacoma Street", "Jan Jonker Road", "Robert Mugabe Avenue", "Independence Avenue",
+            "Fidel Castro Street", "Sam Nujoma Drive", "Mandume ya Ndemufayo Avenue",
+            "Hosea Kutako Drive", "Grove Street", "Beethoven Street", "Mozart Street",
+            "Bach Street", "Brahms Street", "Schubert Street", "Haydn Street",
+            "Wagner Street", "Liszt Street", "Chopin Street", "Handel Street",
+            "Vivaldi Street", "Verdi Street", "Puccini Street", "Rossini Street",
+            "Donizetti Street", "Bellini Street", "Nelson Mandela Avenue",
+            "Kenneth Kaunda Street", "Julius Nyerere Avenue", "Kwame Nkrumah Street",
+            "Peter Müller Street", "Lüderitz Street", "Swakopmund Road", "Otavi Street"
+        };
+
+        // City data with suburbs and street context
         private static readonly (string City, string Region, string[] Suburbs)[] CityData = {
             ("Windhoek", "Khomas", new[] {
-                "Kleine Kuppe", "Olympia", "Pioneerspark", "Eros", "Ludwigsdorf",
+                "Suiderhof", "Olympia", "Pioneerspark", "Eros", "Ludwigsdorf",
                 "Klein Windhoek", "Akademia", "Hochland Park", "Katutura", "Khomasdal",
                 "Windhoek North", "Windhoek West", "Rocky Crest", "Dorado Park", "Auasblick"
             }),
@@ -52,7 +65,7 @@ namespace Ctrl_Save.Services
             }),
             ("Ondangwa", "Oshana", new[] { "Ondangwa Central", "Okatana", "Oluno" }),
             ("Rundu", "Kavango East", new[] {
-                "Sauyemwa", "Kehemu kehemu", "Nkarapamwe", "Rundu Central", "Tutungeni"
+                "Sauyemwa", "Kehemu", "Nkarapamwe", "Rundu Central", "Tutungeni"
             }),
             ("Katima Mulilo", "Zambezi", new[] {
                 "Choto", "Ngweze", "Katima Central", "Cowboy", "Musica"
@@ -89,11 +102,31 @@ namespace Ctrl_Save.Services
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var waitMinutes = _random.Next(8, 13);
-                await Task.Delay(TimeSpan.FromMinutes(waitMinutes), stoppingToken);
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(_random.Next(8, 13)), stoppingToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+
                 if (stoppingToken.IsCancellationRequested) break;
                 await PlaceFakeOrder();
             }
+        }
+
+        private string GeneratePhone()
+        {
+            var prefix = Prefixes[_random.Next(Prefixes.Length)];
+            return $"+264{prefix}{_random.Next(1000000, 9999999)}";
+        }
+
+        private string GenerateAddress(string suburb, string city, string region)
+        {
+            var erfNumber = _random.Next(1, 9999);
+            var street = StreetNames[_random.Next(StreetNames.Length)];
+            return $"ERF {erfNumber} {street}, {suburb}, {city}, {region} Region";
         }
 
         private async Task PlaceFakeOrder()
@@ -109,18 +142,15 @@ namespace Ctrl_Save.Services
                 var itemCount = _random.Next(1, 4);
                 var shuffled = allProducts.OrderBy(_ => _random.Next()).Take(itemCount).ToList();
 
-                // Only 40% of users search — rest browse directly
                 if (_random.Next(100) < 100)
                 {
                     var searchTerm = SearchTerms[_random.Next(SearchTerms.Length)];
                     var searchResults = allProducts.Count(p =>
                         p.Name.ToLower().Contains(searchTerm) ||
                         p.Category.ToLower().Contains(searchTerm));
-                    _logger.LogInformation("product_search query={Query} results={Count}",
-                        searchTerm, searchResults);
+                    _logger.LogInformation("product_search query={Query} results={Count}", searchTerm, searchResults);
                 }
 
-                // 70% of users view product details before ordering
                 foreach (var product in shuffled)
                 {
                     if (_random.Next(100) < 70)
@@ -134,11 +164,9 @@ namespace Ctrl_Save.Services
                 var lastName = LastNames[_random.Next(LastNames.Length)];
                 var cityData = CityData[_random.Next(CityData.Length)];
                 var suburb = cityData.Suburbs[_random.Next(cityData.Suburbs.Length)];
-                var erfNumber = _random.Next(100, 9999);
-                var address = $"ERF {erfNumber}, {suburb}";
+                var phone = GeneratePhone();
+                var address = GenerateAddress(suburb, cityData.City, cityData.Region);
                 var payment = PaymentMethods[_random.Next(PaymentMethods.Length)];
-                var prefix = Prefixes[_random.Next(Prefixes.Length)];
-                var phone = "+264" + prefix + _random.Next(1000000, 9999999).ToString();
 
                 var orderTotal = shuffled.Sum(p =>
                 {
@@ -172,9 +200,6 @@ namespace Ctrl_Save.Services
 
                 _logger.LogInformation("checkout_success order_number={OrderNumber} user={Name} city={City} items={Items} total={Total}",
                     order.OrderNumber, $"{firstName} {lastName}", cityData.City, itemCount, orderTotal);
-
-                _logger.LogInformation("Fake order: {OrderNumber} by {Name} — {Address}, {City}, {Region} — {Items} item(s) — N${Total}",
-                    order.OrderNumber, $"{firstName} {lastName}", address, cityData.City, cityData.Region, itemCount, orderTotal);
             }
             catch (Exception ex)
             {

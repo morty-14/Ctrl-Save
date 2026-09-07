@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Ctrl_Save.Models;
 using System.Text.Json;
 
@@ -32,8 +33,6 @@ namespace Ctrl_Save.Controllers
 
     public class CartController : Controller
     {
-        private const string CartSessionKey = "Cart";
-        private const string CartCookieKey = "CtrlSaveCart";
         private readonly Ctrl_SaveContext _context;
 
         public CartController(Ctrl_SaveContext context)
@@ -41,52 +40,38 @@ namespace Ctrl_Save.Controllers
             _context = context;
         }
 
-        private CookieOptions GetCookieOptions() => new()
-        {
-            Expires = DateTimeOffset.Now.AddDays(7),
-            HttpOnly = true,
-            IsEssential = true,
-            SameSite = SameSiteMode.Lax
-        };
+        private string CartKey => User.Identity?.IsAuthenticated == true
+            ? $"Cart_{User.Identity.Name}"
+            : "Cart_guest";
 
         private List<CartItem> GetCart()
         {
-            var sessionJson = HttpContext.Session.GetString(CartSessionKey);
-            if (!string.IsNullOrEmpty(sessionJson))
-                return JsonSerializer.Deserialize<List<CartItem>>(sessionJson) ?? new();
-
-            var cookieJson = Request.Cookies[CartCookieKey];
-            if (!string.IsNullOrEmpty(cookieJson))
-            {
-                var cart = JsonSerializer.Deserialize<List<CartItem>>(cookieJson) ?? new();
-                HttpContext.Session.SetString(CartSessionKey, cookieJson);
-                return cart;
-            }
-
-            return new List<CartItem>();
+            var sessionJson = HttpContext.Session.GetString(CartKey);
+            return string.IsNullOrEmpty(sessionJson) ? new List<CartItem>() : JsonSerializer.Deserialize<List<CartItem>>(sessionJson) ?? new();
         }
 
         private void SaveCart(List<CartItem> cart)
         {
-            var json = JsonSerializer.Serialize(cart);
-            HttpContext.Session.SetString(CartSessionKey, json);
-            Response.Cookies.Append(CartCookieKey, json, GetCookieOptions());
+            HttpContext.Session.SetString(CartKey, JsonSerializer.Serialize(cart));
         }
 
         private void ClearCart()
         {
-            HttpContext.Session.Remove(CartSessionKey);
-            Response.Cookies.Delete(CartCookieKey);
+            HttpContext.Session.Remove(CartKey);
         }
 
         public IActionResult Index() => View(GetCart());
 
         [HttpPost]
-        public IActionResult Add(string id, string name, string price, string image, string category)
+        public async Task<IActionResult> Add(string id, string name, string price, string image, string category)
         {
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
+            if (product == null || !product.IsAvailable)
+                return Json(new { success = false, message = "Sorry, this item is no longer available." });
+
             var cart = GetCart();
             if (!cart.Any(i => i.Id == id))
-                cart.Add(new CartItem { Id = id, Name = name, Price = price, Image = image, Category = category });
+                cart.Add(new CartItem { Id = id, Name = name, Price = price, Image = image, Category = category, Quantity = 1 });
             SaveCart(cart);
             return Json(new { success = true, count = cart.Sum(i => i.Quantity) });
         }
@@ -100,20 +85,14 @@ namespace Ctrl_Save.Controllers
             return Json(new { success = true, count = cart.Sum(i => i.Quantity) });
         }
 
-        [HttpPost]
-        public IActionResult UpdateQty(string id, int qty)
-        {
-            var cart = GetCart();
-            var item = cart.FirstOrDefault(i => i.Id == id);
-            if (item != null) { item.Quantity = qty < 1 ? 1 : qty; SaveCart(cart); }
-            return Json(new { success = true, count = cart.Sum(i => i.Quantity) });
-        }
-
         [HttpGet]
         public IActionResult Contains(string id) => Json(new { inCart = GetCart().Any(i => i.Id == id) });
 
         [HttpGet]
-        public IActionResult Count() => Json(new { count = GetCart().Sum(i => i.Quantity) });
+        public IActionResult Count()
+        {
+            return Json(new { count = GetCart().Sum(i => i.Quantity) });
+        }
 
         [Authorize]
         public IActionResult Checkout()
@@ -128,10 +107,30 @@ namespace Ctrl_Save.Controllers
         public async Task<IActionResult> PlaceOrder(CheckoutViewModel model)
         {
             var cart = GetCart();
+
+            // Check all items are still available before placing order
+            var soldItems = new List<string>();
+            foreach (var item in cart)
+            {
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == item.Id);
+                if (product == null || !product.IsAvailable)
+                    soldItems.Add(item.Name);
+            }
+
+            if (soldItems.Any())
+            {
+                // Remove sold items from cart
+                var soldIds = cart.Where(i => soldItems.Contains(i.Name)).Select(i => i.Id).ToList();
+                cart.RemoveAll(i => soldIds.Contains(i.Id));
+                SaveCart(cart);
+                TempData["SoldItems"] = string.Join(", ", soldItems);
+                return RedirectToAction("Index");
+            }
+
             var orderTotal = cart.Sum(i =>
             {
                 var priceStr = i.Price.Replace("N$", "").Replace(",", "");
-                return decimal.TryParse(priceStr, out var p) ? p * i.Quantity : 0;
+                return decimal.TryParse(priceStr, out var p) ? p : 0;
             });
 
             var order = new Order
@@ -156,6 +155,15 @@ namespace Ctrl_Save.Controllers
             };
 
             _context.Orders.Add(order);
+
+            // Mark each product as sold immediately
+            foreach (var item in cart)
+            {
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == item.Id);
+                if (product != null)
+                    product.IsAvailable = false;
+            }
+
             await _context.SaveChangesAsync();
             ClearCart();
 

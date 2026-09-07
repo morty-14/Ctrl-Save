@@ -16,7 +16,7 @@ namespace Ctrl_Save.Controllers
         public async Task<IActionResult> Index()
         {
             var products = await _context.Products
-                .Where(p => p.Category == "gaming" && p.IsAvailable)
+                .Where(p => p.Category == "gaming")
                 .ToListAsync();
             return View(products);
         }

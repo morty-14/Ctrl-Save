@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Admin Panel";
+    var products = ViewBag.Products as List<Ctrl_Save.Models.Product> ?? new();
 }
 
 <div class="cs-breadcrumb">
@@ -15,48 +16,1124 @@
     </div>
 </div>
 
-<div class="container cs-content-page">
+<div class="container-fluid cs-admin-page">
     <h1><i class="bi bi-speedometer2 me-2"></i>Admin Panel</h1>
     <p class="text-muted">Logged in as <strong>@User.Identity?.Name</strong></p>
 
-    <h5 class="mt-4 mb-3">Recent Orders</h5>
-
-    @if (!Model.Any())
-    {
-        <p class="text-muted">No orders yet.</p>
-    }
-    else
-    {
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead style="background-color: var(--cs-green-pale);">
-                    <tr>
-                        <th>Order Number</th>
-                        <th>Customer</th>
-                        <th>City</th>
-                        <th>Region</th>
-                        <th>Payment</th>
-                        <th>Items</th>
-                        <th>Total</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var order in Model)
-                    {
-                        <tr>
-                            <td><small>@order.OrderNumber</small></td>
-                            <td>@order.FirstName @order.LastName</td>
-                            <td>@order.City</td>
-                            <td>@order.Region</td>
-                            <td>@order.PaymentMethod</td>
-                            <td>@order.Items.Count</td>
-                            <td style="color: var(--cs-green); font-weight: 700;">N$@order.OrderTotal.ToString("N0")</td>
-                            <td><small>@order.OrderDate.ToString("dd MMM yyyy HH:mm")</small></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
+            <div class="cs-stat-card">
+                <div class="cs-stat-value">@ViewBag.TotalOrders</div>
+                <div class="cs-stat-label">Total Orders</div>
+            </div>
         </div>
-    }
+        <div class="col-6 col-md-4">
+            <div class="cs-stat-card">
+                <div class="cs-stat-value">N$@(((decimal)ViewBag.TotalRevenue).ToString("N0"))</div>
+                <div class="cs-stat-label">Total Revenue</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="cs-stat-card">
+                <div class="cs-stat-value">@ViewBag.TotalProducts</div>
+                <div class="cs-stat-label">Total Products</div>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#orders"><i class="bi bi-bag me-1"></i>Orders</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#inventory"><i class="bi bi-box-seam me-1"></i>Inventory</a></li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#messages">
+                <i class="bi bi-envelope me-1"></i>Messages
+                @if ((int)ViewBag.UnreadMessages > 0)
+                {
+                    <span class="badge bg-danger ms-1">@ViewBag.UnreadMessages</span>
+                }
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- ORDERS TAB -->
+        <div class="tab-pane fade show active" id="orders">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Recent Orders</h5>
+                <div class="dropdown">
+                    <button class="cs-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-download me-1"></i>Export
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end cs-export-menu">
+                        <li><span class="dropdown-header">Export Orders as</span></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportOrdersCSV()"><i class="bi bi-filetype-csv me-2"></i>CSV</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportOrdersPDF()"><i class="bi bi-filetype-pdf me-2"></i>PDF</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-sm-3"><input type="text" id="orderSearch" class="form-control form-control-sm" placeholder="Search name or order #..." oninput="filterOrders()" /></div>
+                <div class="col-sm-3">
+                    <select id="orderCity" class="form-select form-select-sm" onchange="filterOrders()">
+                        <option value="">All Cities</option>
+                        @foreach (var city in Model.Select(o => o.City).Distinct().OrderBy(c => c))
+                        {
+                            <option value="@city">@city</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-3">
+                    <select id="orderPayment" class="form-select form-select-sm" onchange="filterOrders()">
+                        <option value="">All Payment Methods</option>
+                        <option value="Cash on Delivery">Cash on Delivery</option>
+                        <option value="EFT">EFT</option>
+                    </select>
+                </div>
+                <div class="col-sm-3"><button class="btn btn-sm btn-outline-secondary w-100" onclick="resetOrderFilters()">Reset</button></div>
+            </div>
+            @if (!Model.Any())
+            {
+                <p class="text-muted">No orders yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead style="background-color: var(--cs-green-pale);">
+                            <tr>
+                                <th>Order Number</th>
+                                <th style="cursor:pointer;" onclick="sortOrders('name')">Customer <i id="sort-order-name" class="bi bi-arrow-down-up"></i></th>
+                                <th>City</th>
+                                <th style="cursor:pointer;" onclick="sortOrders('region')">Region <i id="sort-order-region" class="bi bi-arrow-down-up"></i></th>
+                                <th>Payment</th>
+                                <th>Items</th>
+                                <th style="cursor:pointer;" onclick="sortOrders('total')">Total <i id="sort-order-total" class="bi bi-arrow-down-up"></i></th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersBody">
+                            @foreach (var order in Model)
+                            {
+                                <tr style="cursor:pointer;"
+                                    data-name="@order.FirstName @order.LastName"
+                                    data-order="@order.OrderNumber"
+                                    data-city="@order.City"
+                                    data-payment="@order.PaymentMethod"
+                                    data-region="@order.Region"
+                                    data-items="@order.Items.Count"
+                                    data-total="N$@order.OrderTotal.ToString("N0")"
+                                    data-date="@order.OrderDate.ToString("dd MMM yyyy HH:mm")"
+                                    data-phone="@order.Phone"
+                                    data-address="@order.Address"
+                                    data-itemnames="@string.Join(", ", order.Items.Select(i => i.ProductName))"
+                                    onclick="openOrderDetail(this)">
+                                    <td><small>@order.OrderNumber</small></td>
+                                    <td>@order.FirstName @order.LastName</td>
+                                    <td>@order.City</td>
+                                    <td>@order.Region</td>
+                                    <td>@order.PaymentMethod</td>
+                                    <td>@order.Items.Count</td>
+                                    <td style="color: var(--cs-green); font-weight: 700;">N$@order.OrderTotal.ToString("N0")</td>
+                                    <td><small>@order.OrderDate.ToString("dd MMM yyyy HH:mm")</small></td>
+                                    <td onclick="event.stopPropagation()">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" onclick="openOrderDetail(this.closest('tr').previousElementSibling || this.closest('tr')); event.stopPropagation();"><i class="bi bi-eye me-2"></i>View</a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-danger" href="#" onclick="confirmDeleteOrder(@order.Id, '@order.OrderNumber'); event.stopPropagation();"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noOrderResults" class="text-muted d-none">No orders match your search.</div>
+                <div id="ordersPagination" class="d-flex align-items-center gap-2 mt-2 flex-wrap"></div>
+            }
+        </div>
+
+        <!-- INVENTORY TAB -->
+        <div class="tab-pane fade" id="inventory">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Product Inventory</h5>
+                <div class="d-flex gap-2">
+                    <button class="cs-btn" onclick="openAddModal()"><i class="bi bi-plus-circle me-1"></i>Add Product</button>
+                    <div class="dropdown">
+                        <button class="cs-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="bi bi-download me-1"></i>Export</button>
+                        <ul class="dropdown-menu dropdown-menu-end cs-export-menu">
+                            <li><span class="dropdown-header">Export Inventory as</span></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportInventoryCSV()"><i class="bi bi-filetype-csv me-2"></i>CSV</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportInventoryPDF()"><i class="bi bi-filetype-pdf me-2"></i>PDF</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-sm-3"><input type="text" id="productSearch" class="form-control form-control-sm" placeholder="Search product name..." oninput="filterProducts()" /></div>
+                <div class="col-sm-2">
+                    <select id="productCategory" class="form-select form-select-sm" onchange="filterProducts()">
+                        <option value="">All Categories</option>
+                        <option value="gaming">Gaming</option>
+                        <option value="laptop">Laptop</option>
+                        <option value="phone">Phone</option>
+                        <option value="camera">Camera</option>
+                    </select>
+                </div>
+                <div class="col-sm-2">
+                    <select id="productCondition" class="form-select form-select-sm" onchange="filterProducts()">
+                        <option value="">All Conditions</option>
+                        <option value="Like New">Like New</option>
+                        <option value="Good">Good</option>
+                        <option value="Fair">Fair</option>
+                    </select>
+                </div>
+                <div class="col-sm-2">
+                    <select id="productAvailability" class="form-select form-select-sm" onchange="filterProducts()">
+                        <option value="">All Availability</option>
+                        <option value="In Stock">In Stock</option>
+                        <option value="Sold">Sold</option>
+                    </select>
+                </div>
+                <div class="col-sm-3"><button class="btn btn-sm btn-outline-secondary w-100" onclick="resetProductFilters()">Reset</button></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead style="background-color: var(--cs-green-pale);">
+                        <tr>
+                            <th>Image</th>
+                            <th style="cursor:pointer;" onclick="sortProducts('name')">Name <i class="bi bi-arrow-down-up" id="sort-name"></i></th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Condition</th>
+                            <th style="cursor:pointer;" onclick="sortProducts('listed')">Listed <i class="bi bi-arrow-down-up" id="sort-listed"></i></th>
+                            <th>Available</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsBody">
+                        @foreach (var product in products)
+                        {
+                            <tr data-id="@product.Id"
+                                data-name="@product.Name.ToLower()"
+                                data-category="@product.Category"
+                                data-condition="@product.Condition"
+                                data-fullname="@product.Name"
+                                data-price="@product.Price"
+                                data-listed="@product.Listed"
+                                data-available="@(product.IsAvailable ? "In Stock" : "Sold")">
+                                <td style="cursor:pointer;" onclick="openProductDetail('@product.Id', '@product.Name', '@product.Category', '@product.Price', '@product.Condition', '@Html.Raw(product.Includes?.Replace("'", "\\'"))', '@product.Image', '@(product.IsAvailable ? "In Stock" : "Sold")', '@product.Listed')">
+                                    <img src="~/images/products/@product.Category/@product.Image" alt="@product.Name" style="width:50px; height:50px; object-fit:contain; background:#f5f5f5; border-radius:4px;" />
+                                </td>
+                                <td style="cursor:pointer; color: var(--cs-green); font-weight:500;" onclick="openProductDetail('@product.Id', '@product.Name', '@product.Category', '@product.Price', '@product.Condition', '@Html.Raw(product.Includes?.Replace("'", "\\'"))', '@product.Image', '@(product.IsAvailable ? "In Stock" : "Sold")', '@product.Listed')">@product.Name</td>
+                                <td style="text-transform:capitalize;">@product.Category</td>
+                                <td style="color: var(--cs-green); font-weight:700;">@product.Price</td>
+                                <td><span class="cs-condition-badge cs-condition-@product.Condition.ToLower().Replace(" ", "-")">@product.Condition</span></td>
+                                <td><small>@product.Listed</small></td>
+                                <td>
+                                    @if (product.IsAvailable)
+                                    {
+                                        <span class="badge" style="background-color: var(--cs-green);">In Stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Sold</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" onclick="openEditModal(@product.Id, '@product.Name', '@product.Category', '@product.Price', '@product.Condition', '@Html.Raw(product.Description?.Replace("'", "\\'"))', '@Html.Raw(product.Includes?.Replace("'", "\\'"))', '@product.Image', @product.IsAvailable.ToString().ToLower()); event.stopPropagation();"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete(@product.Id, '@product.Name'); event.stopPropagation();"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div id="noProductResults" class="text-muted d-none">No products match your search.</div>
+            <div id="productsPagination" class="d-flex align-items-center gap-2 mt-2 flex-wrap"></div>
+        </div>
+
+        <!-- MESSAGES TAB -->
+        <div class="tab-pane fade" id="messages">
+            @{
+                var messages = ViewBag.Messages as List<Ctrl_Save.Models.ContactMessage> ?? new();
+            }
+            <h5 class="mb-3">Contact Messages</h5>
+            @if (!messages.Any())
+            {
+                <p class="text-muted">No messages yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead style="background-color: var(--cs-green-pale);">
+                            <tr>
+                                <th>Status</th>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Message</th>
+                                <th>Sent</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var msg in messages)
+                            {
+                                <tr id="msg-@msg.Id"
+                                    style="cursor:pointer; @(msg.IsRead ? "" : "font-weight:600; background-color:#f0f9f3;")"
+                                    onclick="viewMessage(@msg.Id, '@msg.FirstName @msg.LastName', '@msg.ContactMethod', '@msg.ContactDetail', '@Html.Raw(msg.Message.Replace("'", "\\'").Replace("\n", "\\n"))', '@msg.SentAt.ToString("dd MMM yyyy HH:mm")', @msg.IsRead.ToString().ToLower(), '@Html.Raw((msg.Reply ?? "").Replace("'", "\\'"))', '@(msg.RepliedAt.HasValue ? msg.RepliedAt.Value.ToString("dd MMM yyyy HH:mm") : "")')">
+                                    <td onclick="event.stopPropagation()">
+                                        @if (msg.IsRead)
+                                        {
+                                            <span class="badge bg-secondary">Read</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge" style="background-color:var(--cs-green);">New</span>
+                                        }
+                                    </td>
+                                    <td>@msg.FirstName @msg.LastName</td>
+                                    <td>
+                                        @if (msg.ContactMethod == "email")
+                                        {
+                                            <small><i class="bi bi-envelope me-1"></i>@msg.ContactDetail</small>
+                                        }
+                                        else
+                                        {
+                                            <small><i class="bi bi-telephone me-1"></i>@msg.ContactDetail</small>
+                                        }
+                                    </td>
+                                    <td style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@msg.Message</td>
+                                    <td><small>@msg.SentAt.ToString("dd MMM yyyy HH:mm")</small></td>
+                                    <td onclick="event.stopPropagation()">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" onclick="viewMessage(@msg.Id, '@msg.FirstName @msg.LastName', '@msg.ContactMethod', '@msg.ContactDetail', '@Html.Raw(msg.Message.Replace("'", "\\'").Replace("\n", "\\n"))', '@msg.SentAt.ToString("dd MMM yyyy HH:mm")', @msg.IsRead.ToString().ToLower(), '@Html.Raw((msg.Reply ?? "").Replace("'", "\\'"))', '@(msg.RepliedAt.HasValue ? msg.RepliedAt.Value.ToString("dd MMM yyyy HH:mm") : "")'); event.stopPropagation();"><i class="bi bi-eye me-2"></i>View</a></li>
+                                                @if (!msg.IsRead)
+                                                {
+                                                    <li><a class="dropdown-item" href="#" onclick="markRead(@msg.Id)"><i class="bi bi-check2 me-2"></i>Mark as Read</a></li>
+                                                }
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteMessage(@msg.Id)"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+    </div>
 </div>
+
+<!-- MESSAGE VIEW OVERLAY -->
+<div id="messageOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99998; justify-content:center; align-items:center;" onclick="closeMessageOverlay(event)">
+    <div style="background:#fff; border-radius:10px; max-width:540px; width:90%; padding:2rem; position:relative; box-shadow:0 8px 32px rgba(0,0,0,0.3); max-height:90vh; overflow-y:auto;" onclick="event.stopPropagation()">
+        <button onclick="closeMessageOverlayBtn()" style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.4rem; cursor:pointer; color:#666; line-height:1;">&times;</button>
+        <div style="font-size:0.78rem; color:#888; text-transform:uppercase; letter-spacing:0.5px;">From</div>
+        <div id="msgOverlayName" style="font-weight:700; font-size:1.1rem; margin-bottom:0.1rem;"></div>
+        <div id="msgOverlayContact" style="color:var(--cs-green); font-size:0.9rem; margin-bottom:0.5rem;"></div>
+        <div style="font-size:0.78rem; color:#888; margin-top:1rem; text-transform:uppercase; letter-spacing:0.5px;">Sent</div>
+        <div id="msgOverlayDate" style="font-size:0.88rem; color:#555; margin-bottom:1rem;"></div>
+        <div style="font-size:0.78rem; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.5rem;">Message</div>
+        <div id="msgOverlayText" style="background:#f5f5f5; border-radius:6px; padding:1rem; font-size:0.93rem; white-space:pre-wrap; max-height:150px; overflow-y:auto; margin-bottom:1.25rem;"></div>
+
+        <!-- Existing reply -->
+        <div id="existingReply" style="display:none; margin-bottom:1rem;">
+            <div style="font-size:0.78rem; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.4rem;">Reply Sent</div>
+            <div id="existingReplyText" style="background:var(--cs-green-pale); border-left:3px solid var(--cs-green); border-radius:4px; padding:0.75rem; font-size:0.9rem; white-space:pre-wrap;"></div>
+            <div id="existingReplyDate" style="font-size:0.78rem; color:#888; margin-top:0.3rem;"></div>
+        </div>
+
+        <!-- Reply input -->
+        <div id="newReplySection">
+            <div style="font-size:0.78rem; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.4rem;">Reply via <span id="replyMethodLabel" style="color:var(--cs-green); text-transform:none;"></span></div>
+            <textarea id="replyText" class="form-control" rows="3" placeholder="Type your reply here..."></textarea>
+            <div class="d-flex justify-content-end mt-2">
+                <button class="cs-btn" onclick="sendReply()"><i class="bi bi-send me-1"></i>Send Reply</button>
+            </div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button id="msgOverlayMarkRead" class="btn btn-sm btn-outline-success" onclick="markReadFromOverlay()"><i class="bi bi-check2 me-1"></i>Mark as Read</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="closeMessageOverlayBtn()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ORDER DETAIL OVERLAY -->
+<div id="orderDetailOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99998; justify-content:center; align-items:center;" onclick="closeOrderDetail(event)">
+    <div style="background:#fff; border-radius:10px; max-width:520px; width:90%; padding:2rem; position:relative; box-shadow:0 8px 32px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+        <button onclick="closeOrderDetailBtn()" style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.4rem; cursor:pointer; color:#666; line-height:1;">&times;</button>
+        <div style="background:var(--cs-green); color:#fff; border-radius:6px; padding:1rem 1.25rem; margin-bottom:1.25rem;">
+            <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8;">Order Number</div>
+            <div id="detailOrderNumber" style="font-weight:800; font-size:1.1rem;"></div>
+            <div id="detailOrderDate" style="font-size:0.82rem; opacity:0.85; margin-top:0.2rem;"></div>
+        </div>
+        <div class="row g-3" style="font-size:0.9rem;">
+            <div class="col-6">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Customer</div>
+                <div id="detailOrderName" style="font-weight:600;"></div>
+            </div>
+            <div class="col-6">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Phone</div>
+                <div id="detailOrderPhone" style="font-weight:600;"></div>
+            </div>
+            <div class="col-12">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Address</div>
+                <div id="detailOrderAddress" style="font-weight:600;"></div>
+            </div>
+            <div class="col-6">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">City</div>
+                <div id="detailOrderCity" style="font-weight:600;"></div>
+            </div>
+            <div class="col-6">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Region</div>
+                <div id="detailOrderRegion" style="font-weight:600;"></div>
+            </div>
+            <div class="col-6">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Payment</div>
+                <div id="detailOrderPayment" style="font-weight:600;"></div>
+            </div>
+            <div class="col-6">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Total</div>
+                <div id="detailOrderTotal" style="font-weight:800; color:var(--cs-green); font-size:1.1rem;"></div>
+            </div>
+            <div class="col-12">
+                <div style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Items Ordered</div>
+                <div id="detailOrderItems" style="font-weight:600;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PRODUCT DETAIL OVERLAY -->
+<div id="productDetailOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99998; justify-content:center; align-items:center;" onclick="closeProductDetail(event)">
+    <div style="background:#fff; border-radius:10px; max-width:520px; width:90%; padding:2rem; position:relative; box-shadow:0 8px 32px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+        <button onclick="closeProductDetailBtn()" style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.4rem; cursor:pointer; color:#666; line-height:1;">&times;</button>
+        <div class="text-center mb-3">
+            <img id="detailImg" src="" alt="" style="max-width:100%; max-height:220px; object-fit:contain; background:#f5f5f5; border-radius:8px; border:1px solid #ddd; padding:8px;" />
+        </div>
+        <h4 id="detailName" style="font-weight:700; color:var(--cs-dark); margin-bottom:0.25rem;"></h4>
+        <div id="detailPrice" style="font-size:1.5rem; font-weight:800; color:var(--cs-green); margin-bottom:1rem;"></div>
+        <div class="row g-2" style="font-size:0.9rem;">
+            <div class="col-6">
+                <span style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Category</span>
+                <div id="detailCategory" style="font-weight:600; text-transform:capitalize;"></div>
+            </div>
+            <div class="col-6">
+                <span style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Condition</span>
+                <div id="detailCondition"></div>
+            </div>
+            <div class="col-6 mt-2">
+                <span style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Listed</span>
+                <div id="detailListed" style="font-weight:600;"></div>
+            </div>
+            <div class="col-6 mt-2">
+                <span style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">Availability</span>
+                <div id="detailAvailable"></div>
+            </div>
+            <div class="col-12 mt-2" id="detailIncludesWrap">
+                <span style="color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px;">What's Included</span>
+                <div id="detailIncludes" style="font-weight:600;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE ORDER MODAL -->
+<div class="modal fade" id="deleteOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete order <strong id="deleteOrderNumber"></strong>? This will update the total orders and revenue figures and cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteOrder()">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: var(--cs-green-pale);">
+                <h5 class="modal-title" id="productModalTitle">Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="productId" />
+                <p class="text-muted" style="font-size:0.85rem;"><span style="color:red;">*</span> Required fields</p>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label">Name <span style="color:red;">*</span></label>
+                        <input type="text" id="productName" class="form-control" oninput="validateForm()" />
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Category <span style="color:red;">*</span></label>
+                        <select id="productCategoryInput" class="form-select" onchange="updateImagePreview(); validateForm()">
+                            <option value="gaming">Gaming</option>
+                            <option value="laptop">Laptop</option>
+                            <option value="phone">Phone</option>
+                            <option value="camera">Camera</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Price <span style="color:red;">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">N$</span>
+                            <input type="number" id="productPrice" class="form-control" placeholder="1500" min="0" oninput="validateForm()" />
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Condition <span style="color:red;">*</span></label>
+                        <select id="productConditionInput" class="form-select" onchange="validateForm()">
+                            <option value="Like New">Like New</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">Product Image <span style="color:red;">*</span></label>
+                        <input type="file" id="productImageFile" class="form-control" accept=".jpg,.jpeg,.png,.webp" onchange="uploadImage()" />
+                        <div class="form-text" id="imageStatus"></div>
+                        <input type="hidden" id="productImage" />
+                    </div>
+                    <div class="col-sm-6 d-flex align-items-center justify-content-center">
+                        <div id="imagePreviewBox" style="display:none; text-align:center;">
+                            <img id="imagePreview" src="" alt="Preview" style="max-width:100%; max-height:180px; object-fit:contain; background:#f5f5f5; border-radius:6px; border:1px solid #ddd; padding:6px;" />
+                            <div class="form-text mt-1" id="imagePreviewName"></div>
+                        </div>
+                        <div id="imagePreviewPlaceholder" style="width:100%; height:120px; background:#f5f5f5; border-radius:6px; border:1px dashed #ccc; display:flex; align-items:center; justify-content:center; color:#aaa; font-size:0.85rem;">
+                            <i class="bi bi-image me-2"></i>Image preview
+                        </div>
+                    </div>
+                    <div class="col-sm-6" id="availableField">
+                        <label class="form-label">Available</label>
+                        <select id="productAvailable" class="form-select">
+                            <option value="true">In Stock</option>
+                            <option value="false">Sold</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">What's Included <span style="color:red;">*</span></label>
+                        <input type="text" id="productIncludes" class="form-control" placeholder="Console, controller, cables..." oninput="validateForm()" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="cs-btn cs-btn-added" id="saveProductBtn" onclick="saveProduct()" disabled>Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong id="deleteProductName"></strong>? This cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteProduct()">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        const PAGE_SIZE = 10;
+        var allOrderRows = [], filteredOrderRows = [], orderPage = 1;
+        var allProductRows = [], filteredProductRows = [], productPage = 1;
+        var deleteProductId = null;
+
+        // ===== MESSAGES =====
+        var currentMsgId = null;
+
+        function viewMessage(id, name, contactMethod, contactDetail, message, date, isRead, reply, repliedAt) {
+            currentMsgId = id;
+            document.getElementById('msgOverlayName').textContent = name;
+            var contactEl = document.getElementById('msgOverlayContact');
+            var icon = contactMethod === 'email' ? '✉ ' : '📞 ';
+            contactEl.textContent = icon + contactDetail;
+            document.getElementById('msgOverlayDate').textContent = date;
+            document.getElementById('msgOverlayText').textContent = message.replace(/\\n/g, '\n');
+            document.getElementById('replyMethodLabel').textContent = contactMethod === 'email' ? 'Email' : 'Phone/WhatsApp';
+            document.getElementById('replyText').value = '';
+
+            var existingReply = document.getElementById('existingReply');
+            if (reply) {
+                document.getElementById('existingReplyText').textContent = reply;
+                document.getElementById('existingReplyDate').textContent = 'Sent: ' + repliedAt;
+                existingReply.style.display = '';
+                document.getElementById('newReplySection').style.display = 'none';
+            } else {
+                existingReply.style.display = 'none';
+                document.getElementById('newReplySection').style.display = '';
+            }
+
+            var markBtn = document.getElementById('msgOverlayMarkRead');
+            markBtn.style.display = isRead ? 'none' : '';
+            document.getElementById('messageOverlay').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function sendReply() {
+            var reply = document.getElementById('replyText').value.trim();
+            if (!reply) return;
+            fetch('/Admin/ReplyMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id=' + currentMsgId + '&reply=' + encodeURIComponent(reply)
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    closeMessageOverlayBtn();
+                    window.location.href = '/Admin#messages';
+                }
+            });
+        }
+
+        function closeMessageOverlay(e) {
+            if (e.target === document.getElementById('messageOverlay')) closeMessageOverlayBtn();
+        }
+
+        function closeMessageOverlayBtn() {
+            document.getElementById('messageOverlay').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function markRead(id) {
+            fetch('/Admin/MarkMessageRead', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'id=' + id })
+                .then(r => r.json())
+                .then(result => { if (result.success) { window.location.href = '/Admin#messages'; } });
+        }
+
+        function markReadFromOverlay() {
+            if (currentMsgId) markRead(currentMsgId);
+        }
+
+        function deleteMessage(id) {
+            if (!confirm('Delete this message?')) return;
+            fetch('/Admin/DeleteMessage', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'id=' + id })
+                .then(r => r.json())
+                .then(result => { if (result.success) { window.location.href = '/Admin#messages'; } });
+        }
+
+        // ===== ORDER DETAIL OVERLAY =====
+        function openOrderDetail(row) {
+            document.getElementById('detailOrderNumber').textContent = row.dataset.order;
+            document.getElementById('detailOrderDate').textContent = row.dataset.date;
+            document.getElementById('detailOrderName').textContent = row.dataset.name;
+            document.getElementById('detailOrderPhone').textContent = row.dataset.phone || 'N/A';
+            document.getElementById('detailOrderAddress').textContent = row.dataset.address || 'N/A';
+            document.getElementById('detailOrderCity').textContent = row.dataset.city;
+            document.getElementById('detailOrderRegion').textContent = row.dataset.region;
+            document.getElementById('detailOrderPayment').textContent = row.dataset.payment;
+            document.getElementById('detailOrderTotal').textContent = row.dataset.total;
+            document.getElementById('detailOrderItems').textContent = row.dataset.itemnames || 'N/A';
+
+            var overlay = document.getElementById('orderDetailOverlay');
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeOrderDetail(e) {
+            if (e.target === document.getElementById('orderDetailOverlay')) closeOrderDetailBtn();
+        }
+
+        function closeOrderDetailBtn() {
+            document.getElementById('orderDetailOverlay').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // ===== PRODUCT DETAIL OVERLAY =====
+        function openProductDetail(id, name, category, price, condition, includes, image, available, listed) {
+            document.getElementById('detailImg').src = '/images/products/' + category + '/' + image;
+            document.getElementById('detailImg').alt = name;
+            document.getElementById('detailName').textContent = name;
+            document.getElementById('detailPrice').textContent = price;
+            document.getElementById('detailCategory').textContent = category;
+            document.getElementById('detailListed').textContent = listed;
+
+            var condEl = document.getElementById('detailCondition');
+            condEl.innerHTML = '<span class="cs-condition-badge cs-condition-' + condition.toLowerCase().replace(' ', '-') + '">' + condition + '</span>';
+
+            var availEl = document.getElementById('detailAvailable');
+            availEl.innerHTML = available === 'In Stock'
+                ? '<span class="badge" style="background-color:var(--cs-green);">In Stock</span>'
+                : '<span class="badge bg-secondary">Sold</span>';
+
+            var incWrap = document.getElementById('detailIncludesWrap');
+            if (includes) {
+                document.getElementById('detailIncludes').textContent = includes;
+                incWrap.style.display = '';
+            } else {
+                incWrap.style.display = 'none';
+            }
+
+            var overlay = document.getElementById('productDetailOverlay');
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProductDetail(e) {
+            if (e.target === document.getElementById('productDetailOverlay')) {
+                closeProductDetailBtn();
+            }
+        }
+
+        function closeProductDetailBtn() {
+            document.getElementById('productDetailOverlay').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeProductDetailBtn();
+                closeOrderDetailBtn();
+            }
+        });
+
+        // ===== IMAGE UPLOAD =====
+        async function uploadImage() {
+            var fileInput = document.getElementById('productImageFile');
+            var category = document.getElementById('productCategoryInput').value;
+            var status = document.getElementById('imageStatus');
+
+            if (!fileInput.files[0]) return;
+
+            var formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('category', category);
+
+            status.textContent = 'Uploading...';
+            status.className = 'form-text text-muted';
+
+            var response = await fetch('/Admin/UploadImage', { method: 'POST', body: formData });
+            var result = await response.json();
+
+            if (result.success) {
+                document.getElementById('productImage').value = result.filename;
+                status.textContent = '✓ ' + result.filename + ' uploaded';
+                status.className = 'form-text text-success';
+                showPreview('/images/products/' + category + '/' + result.filename, result.filename);
+                validateForm();
+            } else {
+                status.textContent = '✗ ' + result.message;
+                status.className = 'form-text text-danger';
+            }
+        }
+
+        function showPreview(src, filename) {
+            var preview = document.getElementById('imagePreview');
+            var box = document.getElementById('imagePreviewBox');
+            var placeholder = document.getElementById('imagePreviewPlaceholder');
+            var name = document.getElementById('imagePreviewName');
+            preview.src = src;
+            name.textContent = filename;
+            box.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+
+        function hidePreview() {
+            document.getElementById('imagePreviewBox').style.display = 'none';
+            document.getElementById('imagePreviewPlaceholder').style.display = 'flex';
+        }
+
+        function updateImagePreview() {
+            var img = document.getElementById('productImage').value;
+            var category = document.getElementById('productCategoryInput').value;
+            if (img) showPreview('/images/products/' + category + '/' + img, img);
+        }
+
+        // ===== PRODUCT MODAL =====
+        function validateForm() {
+            var name = document.getElementById('productName').value.trim();
+            var price = document.getElementById('productPrice').value.trim();
+            var image = document.getElementById('productImage').value.trim();
+            var includes = document.getElementById('productIncludes').value.trim();
+            var valid = name && price && image && includes;
+            var btn = document.getElementById('saveProductBtn');
+            btn.disabled = !valid;
+            btn.classList.toggle('cs-btn-added', !valid);
+        }
+
+        function openAddModal() {
+            document.getElementById('productModalTitle').textContent = 'Add Product';
+            document.getElementById('productId').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('productCategoryInput').value = 'gaming';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productConditionInput').value = 'Good';
+            document.getElementById('productImage').value = '';
+            document.getElementById('productImageFile').value = '';
+            document.getElementById('productAvailable').value = 'true';
+            document.getElementById('productIncludes').value = '';
+            document.getElementById('imageStatus').textContent = '';
+            hidePreview();
+            document.getElementById('availableField').style.display = 'none';
+            validateForm();
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+
+        function openEditModal(id, name, category, price, condition, description, includes, image, available) {
+            document.getElementById('productModalTitle').textContent = 'Edit Product';
+            document.getElementById('productId').value = id;
+            document.getElementById('productName').value = name;
+            document.getElementById('productCategoryInput').value = category;
+            document.getElementById('productPrice').value = price;
+            document.getElementById('productConditionInput').value = condition;
+            document.getElementById('productImage').value = image;
+            document.getElementById('productImageFile').value = '';
+            document.getElementById('productAvailable').value = available.toString();
+            document.getElementById('productIncludes').value = includes;
+            document.getElementById('imageStatus').textContent = image ? '✓ Current: ' + image : '';
+            document.getElementById('imageStatus').className = 'form-text text-muted';
+            document.getElementById('availableField').style.display = '';
+            document.getElementById('productPrice').value = price.replace('N$', '').replace(',', '');
+
+            if (image) {
+                showPreview('/images/products/' + category + '/' + image, image);
+            } else {
+                hidePreview();
+            }
+
+            validateForm();
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+
+        function saveProduct() {
+            var id = document.getElementById('productId').value;
+            var isAdd = !id;
+            var url = isAdd ? '/Admin/AddProduct' : '/Admin/EditProduct';
+
+            var data = new URLSearchParams({
+                Id: id,
+                Name: document.getElementById('productName').value,
+                Category: document.getElementById('productCategoryInput').value,
+                Price: 'N$' + parseInt(document.getElementById('productPrice').value).toLocaleString(),
+                Condition: document.getElementById('productConditionInput').value,
+                Image: document.getElementById('productImage').value,
+                IsAvailable: isAdd ? 'true' : document.getElementById('productAvailable').value,
+                Includes: document.getElementById('productIncludes').value
+            });
+
+            fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: data })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+                        if (isAdd && result.newId) {
+                            window.location.href = '/Admin#inventory&highlight=' + result.newId;
+                        } else {
+                            window.location.href = '/Admin#inventory';
+                        }
+                    } else {
+                        alert('Failed to save product. Please try again.');
+                    }
+                })
+                .catch(err => {
+                    alert('An error occurred: ' + err);
+                });
+        }
+
+        function confirmDelete(id, name) {
+            deleteProductId = id;
+            document.getElementById('deleteProductName').textContent = name;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        function deleteProduct() {
+            fetch('/Admin/DeleteProduct', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'id=' + deleteProductId })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                        window.location.href = '/Admin#inventory';
+                        location.reload();
+                    }
+                });
+        }
+
+        // ===== ORDERS =====
+        function initOrders() { allOrderRows = Array.from(document.querySelectorAll('#ordersBody tr')); filteredOrderRows = allOrderRows; renderOrders(); }
+        function filterOrders() {
+            var search = document.getElementById('orderSearch').value.toLowerCase();
+            var city = document.getElementById('orderCity').value.toLowerCase();
+            var payment = document.getElementById('orderPayment').value.toLowerCase();
+            filteredOrderRows = allOrderRows.filter(r => (!search || r.dataset.name.toLowerCase().includes(search) || r.dataset.order.toLowerCase().includes(search)) && (!city || r.dataset.city.toLowerCase() === city) && (!payment || r.dataset.payment.toLowerCase() === payment));
+            orderPage = 1; renderOrders();
+        }
+        function renderOrders() {
+            var start = (orderPage - 1) * PAGE_SIZE;
+            allOrderRows.forEach(r => r.style.display = 'none');
+            filteredOrderRows.slice(start, start + PAGE_SIZE).forEach(r => r.style.display = '');
+            document.getElementById('noOrderResults').classList.toggle('d-none', filteredOrderRows.length > 0);
+            renderPagination('ordersPagination', filteredOrderRows.length, orderPage, p => { orderPage = p; renderOrders(); });
+        }
+        function resetOrderFilters() { document.getElementById('orderSearch').value = ''; document.getElementById('orderCity').value = ''; document.getElementById('orderPayment').value = ''; filteredOrderRows = allOrderRows; orderPage = 1; renderOrders(); }
+        function exportOrdersCSV() { downloadCSV('orders.csv', ['Order Number','Customer','City','Region','Payment','Items','Total','Date'], allOrderRows.map(r => [r.dataset.order, r.dataset.name, r.dataset.city, r.dataset.region, r.dataset.payment, r.dataset.items, r.dataset.total, r.dataset.date])); }
+        function exportOrdersPDF() { downloadPDF('orders.pdf', 'Orders Report', [['Order Number','Customer','City','Region','Payment','Items','Total','Date']], allOrderRows.map(r => [r.dataset.order, r.dataset.name, r.dataset.city, r.dataset.region, r.dataset.payment, r.dataset.items, r.dataset.total, r.dataset.date])); }
+
+        // ===== PRODUCTS =====
+        function initProducts() { allProductRows = Array.from(document.querySelectorAll('#productsBody tr')); filteredProductRows = allProductRows; renderProducts(); }
+        function filterProducts() {
+            var search = document.getElementById('productSearch').value.toLowerCase();
+            var category = document.getElementById('productCategory').value.toLowerCase();
+            var condition = document.getElementById('productCondition').value.toLowerCase();
+            var availability = document.getElementById('productAvailability').value.toLowerCase();
+            filteredProductRows = allProductRows.filter(r =>
+                (!search || r.dataset.name.includes(search)) &&
+                (!category || r.dataset.category.toLowerCase() === category) &&
+                (!condition || r.dataset.condition.toLowerCase() === condition) &&
+                (!availability || r.dataset.available.toLowerCase() === availability)
+            );
+            productPage = 1; renderProducts();
+        }
+        function renderProducts() {
+            var start = (productPage - 1) * PAGE_SIZE;
+            allProductRows.forEach(r => r.style.display = 'none');
+            filteredProductRows.slice(start, start + PAGE_SIZE).forEach(r => r.style.display = '');
+            document.getElementById('noProductResults').classList.toggle('d-none', filteredProductRows.length > 0);
+            renderPagination('productsPagination', filteredProductRows.length, productPage, p => { productPage = p; renderProducts(); });
+        }
+        function resetProductFilters() { document.getElementById('productSearch').value = ''; document.getElementById('productCategory').value = ''; document.getElementById('productCondition').value = ''; document.getElementById('productAvailability').value = ''; filteredProductRows = allProductRows; productPage = 1; renderProducts(); }
+        function exportInventoryCSV() { downloadCSV('inventory.csv', ['Name','Category','Price','Condition','Listed','Available'], allProductRows.map(r => [r.dataset.fullname, r.dataset.category, r.dataset.price, r.dataset.condition, r.dataset.listed, r.dataset.available])); }
+        function exportInventoryPDF() { downloadPDF('inventory.pdf', 'Product Inventory Report', [['Name','Category','Price','Condition','Listed','Available']], allProductRows.map(r => [r.dataset.fullname, r.dataset.category, r.dataset.price, r.dataset.condition, r.dataset.listed, r.dataset.available])); }
+
+        // ===== DELETE ORDER =====
+        var deleteOrderId = null;
+
+        function confirmDeleteOrder(id, orderNumber) {
+            deleteOrderId = id;
+            document.getElementById('deleteOrderNumber').textContent = orderNumber;
+            new bootstrap.Modal(document.getElementById('deleteOrderModal')).show();
+        }
+
+        function deleteOrder() {
+            fetch('/Admin/DeleteOrder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id=' + deleteOrderId
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('deleteOrderModal')).hide();
+                    window.location.href = '/Admin#orders';
+                }
+            });
+        }
+
+        // ===== SORT ORDERS =====
+        var sortOrderDir = { name: 1, region: 1, total: 1 };
+        function sortOrders(col) {
+            sortOrderDir[col] *= -1;
+            var dir = sortOrderDir[col];
+
+            ['name', 'region', 'total'].forEach(function(c) {
+                var el = document.getElementById('sort-order-' + c);
+                if (el) el.className = 'bi bi-arrow-down-up';
+            });
+            document.getElementById('sort-order-' + col).className = dir === 1 ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+
+            allOrderRows.sort(function(a, b) {
+                if (col === 'total') {
+                    var av = parseFloat((a.dataset.total || '0').replace('N$', '').replace(/,/g, '').replace(/\s/g, ''));
+                    var bv = parseFloat((b.dataset.total || '0').replace('N$', '').replace(/,/g, '').replace(/\s/g, ''));
+                    return (av - bv) * dir;
+                }
+                var av = (a.dataset[col] || '').toLowerCase();
+                var bv = (b.dataset[col] || '').toLowerCase();
+                return av.localeCompare(bv) * dir;
+            });
+
+            var search = document.getElementById('orderSearch').value.toLowerCase();
+            var city = document.getElementById('orderCity').value.toLowerCase();
+            var payment = document.getElementById('orderPayment').value.toLowerCase();
+            filteredOrderRows = allOrderRows.filter(r =>
+                (!search || r.dataset.name.toLowerCase().includes(search) || r.dataset.order.toLowerCase().includes(search)) &&
+                (!city || r.dataset.city.toLowerCase() === city) &&
+                (!payment || r.dataset.payment.toLowerCase() === payment)
+            );
+
+            var tbody = document.getElementById('ordersBody');
+            allOrderRows.forEach(r => tbody.appendChild(r));
+
+            orderPage = 1;
+            renderOrders();
+        }
+
+        // ===== SORT PRODUCTS =====
+        var sortDir = { name: 1, listed: 1 };
+        function sortProducts(col) {
+            sortDir[col] *= -1;
+            var dir = sortDir[col];
+
+            document.getElementById('sort-name').className = 'bi bi-arrow-down-up';
+            document.getElementById('sort-listed').className = 'bi bi-arrow-down-up';
+            document.getElementById('sort-' + col).className = dir === 1 ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+
+            function compare(a, b) {
+                if (col === 'listed') {
+                    var da = new Date(a.dataset.listed);
+                    var db = new Date(b.dataset.listed);
+                    return (da - db) * dir;
+                }
+                var av = (a.dataset.name || '').toLowerCase();
+                var bv = (b.dataset.name || '').toLowerCase();
+                return av.localeCompare(bv) * dir;
+            }
+
+            // Sort the master list
+            allProductRows.sort(compare);
+
+            // Re-apply current filters on the sorted master list
+            var search = document.getElementById('productSearch').value.toLowerCase();
+            var category = document.getElementById('productCategory').value.toLowerCase();
+            var condition = document.getElementById('productCondition').value.toLowerCase();
+            var availability = document.getElementById('productAvailability').value.toLowerCase();
+            filteredProductRows = allProductRows.filter(r =>
+                (!search || r.dataset.name.includes(search)) &&
+                (!category || r.dataset.category.toLowerCase() === category) &&
+                (!condition || r.dataset.condition.toLowerCase() === condition) &&
+                (!availability || r.dataset.available.toLowerCase() === availability)
+            );
+
+            // Re-append rows in sorted order so DOM matches
+            var tbody = document.getElementById('productsBody');
+            allProductRows.forEach(r => tbody.appendChild(r));
+
+            productPage = 1;
+            renderProducts();
+        }
+        function downloadCSV(filename, headers, rows) { var csv = [headers.join(',')].concat(rows.map(r => r.map(v => '"' + (v || '') + '"').join(','))).join('\n'); var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = filename; a.click(); }
+        function downloadPDF(filename, title, headers, rows) { var doc = new jspdf.jsPDF({ orientation: 'landscape' }); doc.setFontSize(14); doc.text('Ctrl + Save — ' + title, 14, 15); doc.setFontSize(9); doc.text('Generated: ' + new Date().toLocaleString(), 14, 21); doc.autoTable({ head: headers, body: rows, startY: 26, styles: { fontSize: 8 }, headStyles: { fillColor: [74, 124, 89] } }); doc.save(filename); }
+        function renderPagination(containerId, total, current, onPageChange) {
+            var container = document.getElementById(containerId); var totalPages = Math.ceil(total / PAGE_SIZE); container.innerHTML = '';
+            if (totalPages <= 1) return;
+            var info = document.createElement('small'); info.className = 'text-muted me-2'; info.textContent = 'Page ' + current + ' of ' + totalPages + ' (' + total + ' items)'; container.appendChild(info);
+            function makeBtn(label, page, disabled, active) { var btn = document.createElement('button'); btn.className = 'btn btn-sm ' + (active ? 'btn-success' : 'btn-outline-secondary'); btn.textContent = label; btn.disabled = disabled; btn.onclick = () => onPageChange(page); container.appendChild(btn); }
+            makeBtn('«', 1, current === 1, false); makeBtn('‹', current - 1, current === 1, false);
+            var s = Math.max(1, current - 2), e = Math.min(totalPages, s + 4);
+            for (var i = s; i <= e; i++) makeBtn(i, i, false, i === current);
+            makeBtn('›', current + 1, current === totalPages, false); makeBtn('»', totalPages, current === totalPages, false);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initOrders();
+            initProducts();
+
+            // Lottery counter animation
+            function animateCounter(el, target) {
+                var start = 0;
+                var isPrice = el.textContent.includes('N$');
+                var duration = 1200;
+                var steps = 40;
+                var stepTime = duration / steps;
+                var current = 0;
+                var interval = setInterval(function() {
+                    current += target / steps;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(interval);
+                    }
+                    if (isPrice) {
+                        el.textContent = 'N$' + Math.floor(current).toLocaleString();
+                    } else {
+                        el.textContent = Math.floor(current).toLocaleString();
+                    }
+                }, stepTime);
+            }
+
+            document.querySelectorAll('.cs-stat-value').forEach(function(el) {
+                var raw = el.textContent.replace('N$', '').replace(/,/g, '').replace(/\s/g, '').trim();
+                var target = parseFloat(raw);
+                if (!isNaN(target)) animateCounter(el, target);
+            });
+
+            var hash = window.location.hash;
+
+            if (hash.includes('inventory')) {
+                var inventoryTab = document.querySelector('a[href="#inventory"]');
+                if (inventoryTab) {
+                    var tab = new bootstrap.Tab(inventoryTab);
+                    tab.show();
+                }
+            } else if (hash.includes('messages')) {
+                var messagesTab = document.querySelector('a[href="#messages"]');
+                if (messagesTab) new bootstrap.Tab(messagesTab).show();
+            }
+
+            // Highlight newly added product — runs after tab shown
+            var highlightMatch = hash.match(/highlight=(\d+)/);
+            if (highlightMatch) {
+                var newId = highlightMatch[1];
+
+                setTimeout(function() {
+                    var rows = Array.from(document.querySelectorAll('#productsBody tr'));
+                    var targetRow = null;
+                    rows.forEach(function(row) {
+                        if (row.dataset.id === newId) targetRow = row;
+                    });
+
+                    if (targetRow) {
+                        var idx = filteredProductRows.indexOf(targetRow);
+                        if (idx >= 0) {
+                            productPage = Math.floor(idx / PAGE_SIZE) + 1;
+                            renderProducts();
+                        }
+
+                        setTimeout(function() {
+                            targetRow.style.display = 'table-row';
+                            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            setTimeout(function() {
+                                targetRow.classList.add('cs-row-highlight');
+                            }, 300);
+                        }, 300);
+                    }
+                }, 500);
+            }
+        });
+    </script>
+}

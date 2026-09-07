@@ -10,5 +10,7 @@ namespace Ctrl_Save.Models
         public DbSet<Product> Products { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<ContactMessage> ContactMessages { get; set; }
+        public DbSet<ErrorLog> ErrorLogs { get; set; }
     }
 }

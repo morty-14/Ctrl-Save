@@ -18,7 +18,7 @@ namespace Ctrl_Save.Controllers
         public async Task<IActionResult> Index()
         {
             var products = await _context.Products
-                .Where(p => p.Category == "phone" && p.IsAvailable)
+                .Where(p => p.Category == "phone")
                 .ToListAsync();
             return View(products);
         }
@@ -28,10 +28,7 @@ namespace Ctrl_Save.Controllers
             var product = await _context.Products
                 .FirstOrDefaultAsync(p => p.ProductId == id);
             if (product == null) return NotFound();
-
-            _logger.LogInformation("product_viewed product_name={ProductName} category={Category}",
-                product.Name, product.Category);
-
+            _logger.LogInformation("product_viewed product_name={ProductName} category={Category}", product.Name, product.Category);
             return View(product);
         }
     }

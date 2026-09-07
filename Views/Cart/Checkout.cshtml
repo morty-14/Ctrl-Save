@@ -17,194 +17,181 @@
 </div>
 
 <div class="container cs-checkout-page">
-    <h1 class="cs-cart-title"><i class="bi bi-credit-card me-2"></i>Checkout</h1>
-
     <div class="row g-4">
-        <!-- ORDER SUMMARY -->
-        <div class="col-md-4 order-md-2">
+        <div class="col-md-7">
+            <form asp-action="PlaceOrder" method="post">
+                <p style="font-size:0.85rem; color:#888;"><span style="color:red;">*</span> Required fields</p>
+
+                <!-- Personal Details -->
+                <div class="cs-form-section mb-3">
+                    <div class="cs-form-heading">Personal Details</div>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label">First Name <span style="color:red;">*</span></label>
+                            <input asp-for="FirstName" class="form-control" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Last Name <span style="color:red;">*</span></label>
+                            <input asp-for="LastName" class="form-control" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Phone Number <span style="color:red;">*</span></label>
+                            <input asp-for="Phone" class="form-control" placeholder="+264811234567" required
+                                   oninput="this.value = this.value.replace(/[^\d+]/g, '')" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery Details -->
+                <div class="cs-form-section mb-3">
+                    <div class="cs-form-heading">Delivery Details</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Address <span style="color:red;">*</span></label>
+                            <input asp-for="Address" class="form-control" placeholder="ERF 5 Tacoma Street, Suiderhof" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">City <span style="color:red;">*</span></label>
+                            <select asp-for="City" class="form-select" id="citySelect" onchange="autoFillRegion()" required>
+                                <option value="">Select city...</option>
+                                <option value="Windhoek">Windhoek</option>
+                                <option value="Swakopmund">Swakopmund</option>
+                                <option value="Walvis Bay">Walvis Bay</option>
+                                <option value="Henties Bay">Henties Bay</option>
+                                <option value="Oshakati">Oshakati</option>
+                                <option value="Ondangwa">Ondangwa</option>
+                                <option value="Rundu">Rundu</option>
+                                <option value="Katima Mulilo">Katima Mulilo</option>
+                                <option value="Lüderitz">Lüderitz</option>
+                                <option value="Keetmanshoop">Keetmanshoop</option>
+                                <option value="Otjiwarongo">Otjiwarongo</option>
+                                <option value="Grootfontein">Grootfontein</option>
+                                <option value="Gobabis">Gobabis</option>
+                                <option value="Mariental">Mariental</option>
+                                <option value="Rehoboth">Rehoboth</option>
+                                <option value="Tsumeb">Tsumeb</option>
+                                <option value="Outapi">Outapi</option>
+                                <option value="Eenhana">Eenhana</option>
+                                <option value="Opuwo">Opuwo</option>
+                                <option value="Nkurenkuru">Nkurenkuru</option>
+                                <option value="Oshikango">Oshikango</option>
+                                <option value="Okahandja">Okahandja</option>
+                                <option value="Karibib">Karibib</option>
+                                <option value="Usakos">Usakos</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Region <span style="color:red;">*</span></label>
+                            <input asp-for="Region" class="form-control" id="regionInput" readonly />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="cs-form-section mb-3">
+                    <div class="cs-form-heading">Payment Method <span style="color:red;">*</span></div>
+                    <div class="cs-payment-options">
+                        <label class="cs-payment-option">
+                            <input type="radio" name="PaymentMethod" value="Cash on Delivery" checked />
+                            <div class="cs-payment-label">
+                                <i class="bi bi-cash-stack"></i>
+                                Cash on Delivery
+                            </div>
+                        </label>
+                        <label class="cs-payment-option">
+                            <input type="radio" name="PaymentMethod" value="EFT" id="eftRadio" />
+                            <div class="cs-payment-label">
+                                <i class="bi bi-phone"></i>
+                                EFT / e-Wallet
+                            </div>
+                        </label>
+                    </div>
+                    <div class="cs-eft-info" id="eftInfo" style="display:none;">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Transfer payment to <strong>+264 81 287 5784</strong> and use your order number as reference.<br />
+                        <small class="mt-1 d-block">Accepted: Standard Bank BlueVoucher, FNB eWallet, Bank Windhoek EasyWallet, Nedbank MobiMoney</small>
+                    </div>
+                </div>
+
+                <!-- Hidden items -->
+                @foreach (var item in Model.Items)
+                {
+                    <input type="hidden" name="Items[@Model.Items.IndexOf(item)].Id" value="@item.Id" />
+                    <input type="hidden" name="Items[@Model.Items.IndexOf(item)].Name" value="@item.Name" />
+                    <input type="hidden" name="Items[@Model.Items.IndexOf(item)].Price" value="@item.Price" />
+                    <input type="hidden" name="Items[@Model.Items.IndexOf(item)].Image" value="@item.Image" />
+                    <input type="hidden" name="Items[@Model.Items.IndexOf(item)].Category" value="@item.Category" />
+                }
+
+                <button type="submit" id="placeOrderBtn" class="cs-btn cs-btn-added w-100 mt-2" disabled>Place Order</button>
+            </form>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-md-5">
             <div class="cs-order-summary">
-                <h6 class="cs-summary-heading">Order Summary</h6>
+                <div class="cs-summary-heading">Order Summary</div>
                 @foreach (var item in Model.Items)
                 {
                     <div class="cs-summary-item">
-                        <span>@item.Name @(item.Quantity > 1 ? "x" + item.Quantity : "")</span>
+                        <span>@item.Name</span>
                         <span>@item.Price</span>
                     </div>
                 }
                 <div class="cs-summary-total">
-                    @{
-                        var total = Model.Items.Sum(i => decimal.Parse(i.Price.Replace("N$", "").Replace(",", "")) * i.Quantity);
-                    }
                     <span>Total</span>
-                    <span>N$@total.ToString("N0")</span>
+                    <span>N$@Model.Items.Sum(i => {
+                        var p = i.Price.Replace("N$", "").Replace(",", "");
+                        return decimal.TryParse(p, out var v) ? v : 0;
+                    }).ToString("N0")</span>
                 </div>
             </div>
-        </div>
-
-        <!-- CHECKOUT FORM -->
-        <div class="col-md-8 order-md-1">
-            <form method="post" asp-action="PlaceOrder">
-                <div class="cs-form-section">
-                    <h6 class="cs-form-heading">Your Details</h6>
-                    <div class="row g-3">
-                        <div class="col-sm-6">
-                            <label class="form-label">First Name*</label>
-                            <input class="form-control" name="FirstName" required />
-                        </div>
-                        <div class="col-sm-6">
-                            <label class="form-label">Last Name*</label>
-                            <input class="form-control" name="LastName" required />
-                        </div>
-                        <div class="col-sm-6">
-                            <label class="form-label">Phone Number*</label>
-                            <input class="form-control" name="Phone" type="tel" 
-                                   placeholder="+264811234567"
-                                   pattern="\+264(81|85|83)\d{7}"
-                                   title="Format: +264 followed by 081, 085, or 083 and 7 digits (e.g. +264811234567)"
-                                   required />
-                            <div class="form-text">+264 (081/085/083) followed by 7 digits</div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Delivery Address*</label>
-                            <input class="form-control" name="Address" required />
-                        </div>
-                        <div class="col-sm-6">
-                            <label class="form-label">City*</label>
-                            <select class="form-select" name="City" id="citySelect" onchange="updateRegion()" required>
-                                <option value="">Select a city...</option>
-                                <optgroup label="Khomas">
-                                    <option value="Windhoek">Windhoek</option>
-                                </optgroup>
-                                <optgroup label="Erongo">
-                                    <option value="Swakopmund">Swakopmund</option>
-                                    <option value="Walvis Bay">Walvis Bay</option>
-                                    <option value="Henties Bay">Henties Bay</option>
-                                </optgroup>
-                                <optgroup label="Oshana">
-                                    <option value="Oshakati">Oshakati</option>
-                                    <option value="Ondangwa">Ondangwa</option>
-                                </optgroup>
-                                <optgroup label="Kavango East">
-                                    <option value="Rundu">Rundu</option>
-                                </optgroup>
-                                <optgroup label="Zambezi">
-                                    <option value="Katima Mulilo">Katima Mulilo</option>
-                                </optgroup>
-                                <optgroup label="Karas">
-                                    <option value="Lüderitz">Lüderitz</option>
-                                    <option value="Keetmanshoop">Keetmanshoop</option>
-                                </optgroup>
-                                <optgroup label="Otjozondjupa">
-                                    <option value="Otjiwarongo">Otjiwarongo</option>
-                                    <option value="Grootfontein">Grootfontein</option>
-                                </optgroup>
-                                <optgroup label="Omaheke">
-                                    <option value="Gobabis">Gobabis</option>
-                                </optgroup>
-                                <optgroup label="Hardap">
-                                    <option value="Mariental">Mariental</option>
-                                    <option value="Rehoboth">Rehoboth</option>
-                                </optgroup>
-                                <optgroup label="Oshikoto">
-                                    <option value="Tsumeb">Tsumeb</option>
-                                    <option value="Omuthiya">Omuthiya</option>
-                                </optgroup>
-                                <optgroup label="Omusati">
-                                    <option value="Outapi">Outapi</option>
-                                    <option value="Okahao">Okahao</option>
-                                </optgroup>
-                                <optgroup label="Ohangwena">
-                                    <option value="Eenhana">Eenhana</option>
-                                    <option value="Helao Nafidi">Helao Nafidi</option>
-                                </optgroup>
-                                <optgroup label="Kunene">
-                                    <option value="Opuwo">Opuwo</option>
-                                    <option value="Khorixas">Khorixas</option>
-                                </optgroup>
-                                <optgroup label="Kavango West">
-                                    <option value="Nkurenkuru">Nkurenkuru</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div class="col-sm-6">
-                            <label class="form-label">Region</label>
-                            <input class="form-control" name="Region" id="regionInput" readonly placeholder="Auto-filled from city" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="cs-form-section mt-4">
-                    <h6 class="cs-form-heading">Payment Method</h6>
-                    <div class="cs-payment-options">
-                        <label class="cs-payment-option">
-                            <input type="radio" name="PaymentMethod" value="Cash on Delivery" onchange="showPaymentInfo(this.value)" required />
-                            <div class="cs-payment-label">
-                                <i class="bi bi-truck"></i>
-                                <span>Cash on Delivery</span>
-                            </div>
-                        </label>
-                        <label class="cs-payment-option">
-                            <input type="radio" name="PaymentMethod" value="EFT" onchange="showPaymentInfo(this.value)" />
-                            <div class="cs-payment-label">
-                                <i class="bi bi-phone"></i>
-                                <span>EFT</span>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div id="eftInfo" class="cs-eft-info d-none">
-                        <i class="bi bi-info-circle me-2"></i>
-                        To pay via EFT, send your payment to <strong>+264 81 287 5784</strong>.
-                        If you need bank transfer details, contact us on that number for further information.
-                    </div>
-                </div>
-
-                <button type="submit" class="cs-btn cs-checkout-btn mt-4">
-                    <i class="bi bi-check-circle me-2"></i>Place Order
-                </button>
-            </form>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        const cityRegionMap = {
-            "Windhoek": "Khomas",
-            "Swakopmund": "Erongo",
-            "Walvis Bay": "Erongo",
-            "Henties Bay": "Erongo",
-            "Oshakati": "Oshana",
-            "Ondangwa": "Oshana",
-            "Rundu": "Kavango East",
-            "Katima Mulilo": "Zambezi",
-            "Lüderitz": "Karas",
-            "Keetmanshoop": "Karas",
-            "Otjiwarongo": "Otjozondjupa",
-            "Grootfontein": "Otjozondjupa",
-            "Gobabis": "Omaheke",
-            "Mariental": "Hardap",
-            "Rehoboth": "Hardap",
-            "Tsumeb": "Oshikoto",
-            "Omuthiya": "Oshikoto",
-            "Outapi": "Omusati",
-            "Okahao": "Omusati",
-            "Eenhana": "Ohangwena",
-            "Helao Nafidi": "Ohangwena",
-            "Opuwo": "Kunene",
-            "Khorixas": "Kunene",
-            "Nkurenkuru": "Kavango West"
+        var cityRegions = {
+            'Windhoek': 'Khomas', 'Swakopmund': 'Erongo', 'Walvis Bay': 'Erongo',
+            'Henties Bay': 'Erongo', 'Oshakati': 'Oshana', 'Ondangwa': 'Oshana', "Ongwediva": "Oshana",
+            'Rundu': 'Kavango East', 'Katima Mulilo': 'Zambezi', 'Lüderitz': 'Karas',
+            'Keetmanshoop': 'Karas', 'Otjiwarongo': 'Otjozondjupa', 'Grootfontein': 'Otjozondjupa',
+            'Gobabis': 'Omaheke', 'Mariental': 'Hardap', 'Rehoboth': 'Hardap',
+            'Tsumeb': 'Oshikoto', 'Outapi': 'Omusati', 'Eenhana': 'Ohangwena',
+            'Opuwo': 'Kunene', 'Nkurenkuru': 'Kavango West', 'Oshikango': 'Ohangwena',
+            'Okahandja': 'Otjozondjupa', 'Karibib': 'Erongo', 'Usakos': 'Erongo'
         };
 
-        function updateRegion() {
-            const city = document.getElementById('citySelect').value;
-            const regionInput = document.getElementById('regionInput');
-            regionInput.value = cityRegionMap[city] || '';
+        function autoFillRegion() {
+            var city = document.getElementById('citySelect').value;
+            document.getElementById('regionInput').value = cityRegions[city] || '';
+            validateCheckout();
         }
 
-        function showPaymentInfo(value) {
-            const eftInfo = document.getElementById('eftInfo');
-            eftInfo.classList.toggle('d-none', value !== 'EFT');
+        document.querySelectorAll('input[name="PaymentMethod"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('eftInfo').style.display =
+                    this.value === 'EFT' ? '' : 'none';
+            });
+        });
+
+        function validateCheckout() {
+            var firstName = document.getElementById('FirstName').value.trim();
+            var lastName = document.getElementById('LastName').value.trim();
+            var phone = document.getElementById('Phone').value.trim();
+            var address = document.getElementById('Address').value.trim();
+            var city = document.getElementById('citySelect').value;
+            var region = document.getElementById('regionInput').value.trim();
+            var valid = firstName && lastName && phone && address && city && region;
+            var btn = document.getElementById('placeOrderBtn');
+            btn.disabled = !valid;
+            btn.classList.toggle('cs-btn-added', !valid);
         }
+
+        document.querySelectorAll('input, select').forEach(function(el) {
+            el.addEventListener('input', validateCheckout);
+            el.addEventListener('change', validateCheckout);
+        });
     </script>
 }

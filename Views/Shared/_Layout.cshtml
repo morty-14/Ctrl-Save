@@ -1,3 +1,6 @@
+@{
+    var isAdmin = User.Identity?.Name == "admin1";
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,19 +43,23 @@
                         </li>
 
                         <!-- AUTH -->
-                        @if (User.Identity?.IsAuthenticated == true)
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link cs-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                     <i class="bi bi-person-check me-1"></i>@User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    @if (User.IsInRole("admin"))
+                                    @if (isAdmin)
                                     {
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index"><i class="bi bi-speedometer2 me-2"></i>Admin Panel</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
-                                    <li><a class="dropdown-item" asp-controller="Auth" asp-action="Logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="clearCartAndLogout()">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
                         }
@@ -96,13 +103,13 @@
         fetch('/Cart/Count')
             .then(r => r.json())
             .then(data => {
-                const badge = document.getElementById('cartBadge');
+                var badge = document.getElementById('cartBadge');
                 if (badge) badge.textContent = data.count;
             });
 
         function toggleSearch(e) {
-            const input = document.getElementById('searchInput');
-            const form = document.getElementById('searchForm');
+            var input = document.getElementById('searchInput');
+            var form = document.getElementById('searchForm');
             if (!form.classList.contains('open')) {
                 e.preventDefault();
                 form.classList.add('open');
@@ -111,11 +118,18 @@
         }
 
         document.addEventListener('click', function (e) {
-            const form = document.getElementById('searchForm');
+            var form = document.getElementById('searchForm');
             if (form && !form.contains(e.target)) {
                 form.classList.remove('open');
             }
         });
+
+        function clearCartAndLogout() {
+            document.cookie.split(";").forEach(function(c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            window.location.href = '/Auth/Logout';
+        }
     </script>
     @await RenderSectionAsync("Scripts", required: false)
     <script>initImageZoom();</script>
