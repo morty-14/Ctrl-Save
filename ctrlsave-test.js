@@ -4,10 +4,10 @@ import { check, sleep } from 'k6';
 // Test settings: 10 users, running for 30 seconds
 export const options = {
     vus: 10,        // number of virtual users
-    duration: '30s', // how long to run
+    duration: '30s', // duration of load test
 };
 
-// This function runs repeatedly for each virtual user
+// This function repeats for each virtual user
 export default function () {
 
     // User 1: hit the products endpoint

@@ -1,105 +1,117 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using Ctrl_Save.Models;
 using Ctrl_Save.Models.DTOs;
+using Ctrl_Save.Repositories;
 
 namespace Ctrl_Save.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("fixed")]
     public class ProductsController : ControllerBase
     {
-        private readonly Ctrl_SaveContext _context;
+        private readonly IProductRepository _productRepo;
+        private readonly IMapper _mapper;
+        private readonly IDistributedCache _cache;
 
-        public ProductsController(Ctrl_SaveContext context)
+        public ProductsController(IProductRepository productRepo, IMapper mapper, IDistributedCache cache)
         {
-            _context = context;
+            _productRepo = productRepo;
+            _mapper = mapper;
+            _cache = cache;
         }
 
         /// <summary>Get all products</summary>
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var products = await _context.Products
-                .Select(p => new ProductDto
-                {
-                    ProductId = p.ProductId,
-                    Name = p.Name,
-                    Price = p.Price,
-                    Category = p.Category,
-                    Condition = p.Condition,
-                    Image = p.Image,
-                    Includes = p.Includes,
-                    IsAvailable = p.IsAvailable,
-                    Listed = p.Listed
-                })
-                .ToListAsync();
-            return Ok(products);
+            var cacheKey = "all_products";
+            var cached = await _cache.GetStringAsync(cacheKey);
+
+            if (cached != null)
+            {
+                var cachedProducts = JsonSerializer.Deserialize<List<ProductDto>>(cached);
+                return Ok(cachedProducts);
+            }
+
+            var products = await _productRepo.GetAllAsync();
+            var dtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(dtos),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+
+            return Ok(dtos);
         }
 
         /// <summary>Get products by category</summary>
         [HttpGet("category/{category}")]
         public async Task<IActionResult> GetByCategory(string category)
         {
-            var products = await _context.Products
-                .Where(p => p.Category == category.ToLower())
-                .Select(p => new ProductDto
-                {
-                    ProductId = p.ProductId,
-                    Name = p.Name,
-                    Price = p.Price,
-                    Category = p.Category,
-                    Condition = p.Condition,
-                    Image = p.Image,
-                    Includes = p.Includes,
-                    IsAvailable = p.IsAvailable,
-                    Listed = p.Listed
-                })
-                .ToListAsync();
-            return Ok(products);
+            var cacheKey = $"products_category_{category.ToLower()}";
+            var cached = await _cache.GetStringAsync(cacheKey);
+
+            if (cached != null)
+            {
+                var cachedProducts = JsonSerializer.Deserialize<List<ProductDto>>(cached);
+                return Ok(cachedProducts);
+            }
+
+            var products = await _productRepo.GetByCategoryAsync(category);
+            var dtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(dtos),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+
+            return Ok(dtos);
         }
 
         /// <summary>Get a single product by ProductId</summary>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
-            var product = await _context.Products
-                .FirstOrDefaultAsync(p => p.ProductId == id);
-            if (product == null) return NotFound();
-            return Ok(new ProductDto
+            var cacheKey = $"product_{id}";
+            var cached = await _cache.GetStringAsync(cacheKey);
+
+            if (cached != null)
             {
-                ProductId = product.ProductId,
-                Name = product.Name,
-                Price = product.Price,
-                Category = product.Category,
-                Condition = product.Condition,
-                Image = product.Image,
-                Includes = product.Includes,
-                IsAvailable = product.IsAvailable,
-                Listed = product.Listed
-            });
+                var cachedProduct = JsonSerializer.Deserialize<ProductDto>(cached);
+                return Ok(cachedProduct);
+            }
+
+            var product = await _productRepo.GetByProductIdAsync(id);
+            if (product == null) return NotFound();
+
+            var dto = _mapper.Map<ProductDto>(product);
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(dto),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+
+            return Ok(dto);
         }
 
         /// <summary>Get available products only</summary>
         [HttpGet("available")]
         public async Task<IActionResult> GetAvailable()
         {
-            var products = await _context.Products
-                .Where(p => p.IsAvailable)
-                .Select(p => new ProductDto
-                {
-                    ProductId = p.ProductId,
-                    Name = p.Name,
-                    Price = p.Price,
-                    Category = p.Category,
-                    Condition = p.Condition,
-                    Image = p.Image,
-                    Includes = p.Includes,
-                    IsAvailable = p.IsAvailable,
-                    Listed = p.Listed
-                })
-                .ToListAsync();
-            return Ok(products);
+            var cacheKey = "available_products";
+            var cached = await _cache.GetStringAsync(cacheKey);
+
+            if (cached != null)
+            {
+                var cachedProducts = JsonSerializer.Deserialize<List<ProductDto>>(cached);
+                return Ok(cachedProducts);
+            }
+
+            var products = await _productRepo.GetAvailableAsync();
+            var dtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(dtos),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+
+            return Ok(dtos);
         }
 
         /// <summary>Test error logging</summary>
@@ -124,74 +136,37 @@ namespace Ctrl_Save.Controllers
     [Route("api/[controller]")]
     public class OrdersController : ControllerBase
     {
-        private readonly Ctrl_SaveContext _context;
+        private readonly IOrderRepository _orderRepo;
+        private readonly IMapper _mapper;
 
-        public OrdersController(Ctrl_SaveContext context)
+        public OrdersController(IOrderRepository orderRepo, IMapper mapper)
         {
-            _context = context;
+            _orderRepo = orderRepo;
+            _mapper = mapper;
         }
 
         /// <summary>Get recent orders</summary>
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var orders = await _context.Orders
-                .Include(o => o.Items)
-                .OrderByDescending(o => o.OrderDate)
-                .Take(50)
-                .Select(o => new OrderDto
-                {
-                    OrderNumber = o.OrderNumber,
-                    FirstName = o.FirstName,
-                    LastName = o.LastName,
-                    City = o.City,
-                    Region = o.Region,
-                    PaymentMethod = o.PaymentMethod,
-                    OrderTotal = o.OrderTotal,
-                    OrderDate = o.OrderDate,
-                    Items = o.Items.Select(i => new OrderItemDto
-                    {
-                        ProductName = i.ProductName,
-                        Price = i.Price,
-                        Category = i.Category
-                    }).ToList()
-                })
-                .ToListAsync();
-            return Ok(orders);
+            var orders = await _orderRepo.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<OrderDto>>(orders));
         }
 
         /// <summary>Get order by order number</summary>
         [HttpGet("{orderNumber}")]
         public async Task<IActionResult> GetByOrderNumber(string orderNumber)
         {
-            var order = await _context.Orders
-                .Include(o => o.Items)
-                .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
+            var order = await _orderRepo.GetByOrderNumberAsync(orderNumber);
             if (order == null) return NotFound();
-            return Ok(new OrderDto
-            {
-                OrderNumber = order.OrderNumber,
-                FirstName = order.FirstName,
-                LastName = order.LastName,
-                City = order.City,
-                Region = order.Region,
-                PaymentMethod = order.PaymentMethod,
-                OrderTotal = order.OrderTotal,
-                OrderDate = order.OrderDate,
-                Items = order.Items.Select(i => new OrderItemDto
-                {
-                    ProductName = i.ProductName,
-                    Price = i.Price,
-                    Category = i.Category
-                }).ToList()
-            });
+            return Ok(_mapper.Map<OrderDto>(order));
         }
 
         /// <summary>Get total revenue</summary>
         [HttpGet("revenue")]
         public async Task<IActionResult> GetRevenue()
         {
-            var total = await _context.Orders.SumAsync(o => o.OrderTotal);
+            var total = await _orderRepo.GetTotalRevenueAsync();
             return Ok(new { totalRevenue = total });
         }
     }
