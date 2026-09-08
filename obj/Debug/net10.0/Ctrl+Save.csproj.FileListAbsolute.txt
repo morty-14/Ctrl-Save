@@ -248,5 +248,4 @@ C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\bin\Debug\net10.0\Swashbuckle.
 C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\bin\Debug\net10.0\HealthChecks.SqlServer.dll
-C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\bin\Debug\net10.0\AutoMapper.dll
 C:\Users\A270508\source\repos\Ctrl+Save\Ctrl+Save\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
