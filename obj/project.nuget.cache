@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "WFTCA3dhXKY=",
+  "dgSpecHash": "gleti4Ms5g8=",
   "success": true,
   "projectFilePath": "C:\\Users\\A270508\\source\\repos\\Ctrl+Save\\Ctrl+Save\\Ctrl+Save.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\A270508\\.nuget\\packages\\aspnetcore.healthchecks.sqlserver\\9.0.0\\aspnetcore.healthchecks.sqlserver.9.0.0.nupkg.sha512",
+    "C:\\Users\\A270508\\.nuget\\packages\\automapper\\16.2.0\\automapper.16.2.0.nupkg.sha512",
     "C:\\Users\\A270508\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\A270508\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",
     "C:\\Users\\A270508\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

@@ -47,6 +47,22 @@
   },
   {
     "ContainingType": "Ctrl_Save.Controllers.ProductsController",
+    "Method": "Create",
+    "RelativePath": "api/Products",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Ctrl_Save.Models.DTOs.ProductCreateDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ctrl_Save.Controllers.ProductsController",
     "Method": "GetById",
     "RelativePath": "api/Products/{id}",
     "HttpMethod": "GET",

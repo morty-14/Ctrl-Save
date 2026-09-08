@@ -18,6 +18,22 @@
           }
         }
       },
+      "AutoMapper/16.2.0": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.IdentityModel.JsonWebTokens": "8.14.0"
+        },
+        "compile": {
+          "lib/net10.0/AutoMapper.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/AutoMapper.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Azure.Core/1.47.1": {
         "type": "package",
         "dependencies": {
@@ -1528,6 +1544,30 @@
         "lib/net8.0/HealthChecks.SqlServer.xml",
         "lib/netstandard2.0/HealthChecks.SqlServer.dll",
         "lib/netstandard2.0/HealthChecks.SqlServer.xml"
+      ]
+    },
+    "AutoMapper/16.2.0": {
+      "sha512": "PE8HgPc5BZJnAFwjvDTE72gWL6YrYib+V7+vxtLXDYz0CH/fFgbVcwLUC9UHk5ALwspZ6Vbmoo6PHvseIk/0ZA==",
+      "type": "package",
+      "path": "automapper/16.2.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.md",
+        "README.md",
+        "automapper.16.2.0.nupkg.sha512",
+        "automapper.nuspec",
+        "icon.png",
+        "lib/net10.0/AutoMapper.dll",
+        "lib/net10.0/AutoMapper.xml",
+        "lib/net471/AutoMapper.dll",
+        "lib/net471/AutoMapper.xml",
+        "lib/net8.0/AutoMapper.dll",
+        "lib/net8.0/AutoMapper.xml",
+        "lib/net9.0/AutoMapper.dll",
+        "lib/net9.0/AutoMapper.xml",
+        "lib/netstandard2.0/AutoMapper.dll",
+        "lib/netstandard2.0/AutoMapper.xml"
       ]
     },
     "Azure.Core/1.47.1": {
@@ -4502,6 +4542,7 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "AspNetCore.HealthChecks.SqlServer >= 9.0.0",
+      "AutoMapper >= 16.2.0",
       "Microsoft.AspNetCore.Authentication.OpenIdConnect >= 10.0.11",
       "Microsoft.EntityFrameworkCore >= 10.0.8",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.8",
@@ -4573,6 +4614,10 @@
           "AspNetCore.HealthChecks.SqlServer": {
             "target": "Package",
             "version": "[9.0.0, )"
+          },
+          "AutoMapper": {
+            "target": "Package",
+            "version": "[16.2.0, )"
           },
           "Microsoft.AspNetCore.Authentication.OpenIdConnect": {
             "target": "Package",

@@ -62,6 +62,35 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/api/Products/category/{category}": {
@@ -133,7 +162,48 @@
       }
     }
   },
-  "components": { },
+  "components": {
+    "schemas": {
+      "ProductCreateDto": {
+        "required": [
+          "category",
+          "condition",
+          "image",
+          "name",
+          "price"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "category": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "condition": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "image": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "includes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
   "tags": [
     {
       "name": "Orders"

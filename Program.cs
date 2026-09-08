@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,26 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHealthChecks()
     .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
+// ===== AUTOMAPPER =====
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<Ctrl_Save.Mappings.MappingProfile>());
+
+// ===== REPOSITORIES =====
+builder.Services.AddScoped<Ctrl_Save.Repositories.IProductRepository, Ctrl_Save.Repositories.ProductRepository>();
+builder.Services.AddScoped<Ctrl_Save.Repositories.IOrderRepository, Ctrl_Save.Repositories.OrderRepository>();
+
+// ===== RATE LIMITING =====
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 100;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = 429;
+});
+
 builder.Services.AddAuthorization();
 
 // ===== SERVICES =====
@@ -139,6 +160,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseRateLimiter();
 
 // ===== SWAGGER UI =====
 app.UseSwagger();
@@ -172,7 +194,8 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         await context.Response.WriteAsync(result);
     }
 }).AllowAnonymous();
-app.MapControllers();
+
+app.MapControllers().RequireRateLimiting("fixed");
 
 app.MapControllerRoute(
     name: "default",
