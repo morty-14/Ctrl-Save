@@ -76,7 +76,7 @@ builder.Services.AddAuthentication(options =>
     options.Scope.Add("roles");
 
     options.TokenValidationParameters.NameClaimType = "preferred_username";
-    options.TokenValidationParameters.RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+    options.TokenValidationParameters.RoleClaimType = "roles";
 
     options.Events = new OpenIdConnectEvents
     {
@@ -143,7 +143,7 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-builder.Services.AddHostedService<OrderSimulatorService>();
+// builder.Services.AddHostedService<OrderSimulatorService>(); // Disabled during development
 
 var app = builder.Build();
 

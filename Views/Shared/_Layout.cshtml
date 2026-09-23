@@ -1,5 +1,15 @@
 @{
-    var isAdmin = User.Identity?.Name == "admin1";
+    var isAdmin = User.IsInRole("admin") ||
+                  User.Claims.Any(c => c.Type == "roles" && c.Value == "admin") ||
+                  User.Claims.Any(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role" && c.Value == "admin") ||
+                  User.Claims.Any(c => c.Type == "role" && c.Value == "admin");
+    var isBuyer = User.IsInRole("seller") ||
+                  User.Claims.Any(c => c.Type == "roles" && c.Value == "seller") ||
+                  User.Claims.Any(c => c.Type == "role" && c.Value == "seller");
+    var displayName = User.Claims.FirstOrDefault(c => c.Type == "given_name")?.Value
+                   ?? User.Claims.FirstOrDefault(c => c.Type == "name")?.Value
+                   ?? User.Identity?.Name
+                   ?? "User";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -15,7 +25,7 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm cs-navbar">
+        <nav class="navbar navbar-expand-sm cs-navbar" style="position:relative;">
             <div class="container-fluid px-4">
                 <a class="navbar-brand cs-brand" asp-controller="Home" asp-action="Index">
                     <img src="~/images/cart-logo.png" alt="Ctrl + Save" class="cs-brand-logo" />
@@ -24,14 +34,25 @@
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between align-items-center">
-                    <ul class="navbar-nav me-auto">
+                <div class="navbar-collapse collapse d-sm-inline-flex align-items-center" style="justify-content:space-between;">
+                    <ul class="navbar-nav" style="position:absolute; left:50%; transform:translateX(-50%); flex-direction:row;">
+                        <li class="nav-item">
+                            <a class="nav-link cs-nav-link" asp-controller="Gaming" asp-action="Index">GAMING</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link cs-nav-link" asp-controller="Laptop" asp-action="Index">LAPTOP</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link cs-nav-link" asp-controller="Phone" asp-action="Index">PHONE</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link cs-nav-link" asp-controller="Camera" asp-action="Index">CAMERA</a>
+                        </li>
                     </ul>
-                    <ul class="navbar-nav align-items-center gap-2">
+                    <ul class="navbar-nav align-items-center gap-2 ms-auto">
                         <li class="nav-item">
                             <a class="nav-link cs-nav-link" asp-controller="Support" asp-action="Index">SUPPORT HUB</a>
                         </li>
-
                         <!-- SEARCH -->
                         <li class="nav-item cs-search-nav">
                             <form asp-controller="Search" asp-action="Index" method="get" class="cs-search-form" id="searchForm">
@@ -41,18 +62,49 @@
                                 </button>
                             </form>
                         </li>
-
                         <!-- AUTH -->
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link cs-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-person-check me-1"></i>@User.Identity.Name
+                                    <i class="bi bi-person-check me-1"></i>
+                                    <span class="d-inline-flex flex-column align-items-start" style="line-height:1.1; vertical-align:middle;">
+                                        <span style="font-weight:600;">@displayName</span>
+                                        @if (isAdmin)
+                                        {
+                                            <span style="font-size:0.65rem; background:#198754; color:white; border-radius:3px; padding:0 5px; letter-spacing:0.05em;">ADMIN</span>
+                                        }
+                                        else
+                                        {
+                                            @if (isBuyer)
+                                            {
+                                                <span style="font-size:0.65rem; background:#6c757d; color:white; border-radius:3px; padding:0 5px; letter-spacing:0.05em;">SELLER</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="font-size:0.65rem; background:#6c757d; color:white; border-radius:3px; padding:0 5px; letter-spacing:0.05em;">USER</span>
+                                            }
+                                        }
+                                    </span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     @if (isAdmin)
                                     {
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index"><i class="bi bi-speedometer2 me-2"></i>Admin Panel</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.Identity?.IsAuthenticated == true)
+                                    {
+                                        <div style="display:none" id="debug-claims">
+                                            @foreach (var claim in User.Claims)
+                                            {
+                                                <span>@claim.Type = @claim.Value</span>
+                                            }
+                                        </div>
+                                    }
+                                    @if (isBuyer)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Seller" asp-action="MyListings"><i class="bi bi-box-seam me-2"></i>My Listings</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
                                     <li>
@@ -71,7 +123,6 @@
                                 </a>
                             </li>
                         }
-
                         <!-- CART -->
                         <li class="nav-item">
                             <a class="nav-link cs-nav-link cs-cart-nav" asp-controller="Cart" asp-action="Index">
@@ -84,17 +135,14 @@
             </div>
         </nav>
     </header>
-
     <main role="main">
         @RenderBody()
     </main>
-
     <footer class="cs-footer mt-5">
         <div class="container py-3 text-center">
             <span>&copy; 2026 Ctrl + Save &mdash; <a asp-controller="Home" asp-action="Privacy">Privacy Policy</a></span>
         </div>
     </footer>
-
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
@@ -106,7 +154,6 @@
                 var badge = document.getElementById('cartBadge');
                 if (badge) badge.textContent = data.count;
             });
-
         function toggleSearch(e) {
             var input = document.getElementById('searchInput');
             var form = document.getElementById('searchForm');
@@ -116,14 +163,12 @@
                 input.focus();
             }
         }
-
         document.addEventListener('click', function (e) {
             var form = document.getElementById('searchForm');
             if (form && !form.contains(e.target)) {
                 form.classList.remove('open');
             }
         });
-
         function clearCartAndLogout() {
             document.cookie.split(";").forEach(function(c) {
                 document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");

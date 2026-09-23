@@ -31,5 +31,8 @@ namespace Ctrl_Save.Models
         public string Includes { get; set; } = "";
 
         public bool IsAvailable { get; set; } = true;
+
+        public string? SellerId { get; set; }
+        public string? SellerName { get; set; }
     }
 }

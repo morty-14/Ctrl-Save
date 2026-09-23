@@ -1,0 +1,232 @@
+@model List<Ctrl_Save.Models.Product>
+@{
+    ViewData["Title"] = "My Listings";
+}
+
+<div class="cs-breadcrumb">
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item active">My Listings</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">My Listings</h2>
+        <button class="cs-btn" onclick="showAddModal()">
+            <i class="bi bi-plus-circle me-2"></i>Add New Listing
+        </button>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-box-seam" style="font-size:3rem; color:#ccc;"></i>
+            <p class="mt-3 text-muted">You haven't listed any products yet.</p>
+            <button class="cs-btn mt-2" onclick="showAddModal()">List Your First Product</button>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Condition</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model)
+                    {
+                        <tr>
+                            <td>
+                                <img src="~/images/products/@product.Category/@product.Image"
+                                     style="width:50px; height:50px; object-fit:cover; border-radius:6px;
+                                            @(!product.IsAvailable ? "filter:grayscale(100%);" : "")" />
+                            </td>
+                            <td><strong>@product.Name</strong></td>
+                            <td><span class="badge bg-secondary">@product.Category</span></td>
+                            <td>@product.Price</td>
+                            <td>@product.Condition</td>
+                            <td>
+                                @if (product.IsAvailable)
+                                {
+                                    <span class="badge bg-success">Available</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Sold</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteListing(@product.Id, '@product.Name')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- ADD LISTING MODAL -->
+<div class="modal fade" id="addListingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Listing</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Product Name *</label>
+                        <input type="text" class="form-control" id="listingName" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Price *</label>
+                        <input type="text" class="form-control" id="listingPrice" placeholder="e.g. N$500" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Category *</label>
+                        <select class="form-select" id="listingCategory">
+                            <option value="gaming">Gaming</option>
+                            <option value="laptop">Laptop</option>
+                            <option value="phone">Phone</option>
+                            <option value="camera">Camera</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Condition *</label>
+                        <select class="form-select" id="listingCondition">
+                            <option value="Like New">Like New</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">What's Included *</label>
+                        <input type="text" class="form-control" id="listingIncludes" placeholder="e.g. Console, Controller, Cable" required />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Product Image</label>
+                        <input type="file" class="form-control" id="listingImage" accept="image/*" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="cs-btn" onclick="submitListing()">Submit Listing</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE LISTING MODAL -->
+<div class="modal fade" id="deleteListingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Listing</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong id="deleteListingName"></strong>? This cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteListing()">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="cs-toast" id="sellerToast" style="position:fixed; top:70px; right:1.5rem; z-index:99999;">
+    <div><i class="bi bi-check-circle-fill me-2"></i><span id="sellerToastMsg"></span></div>
+    <button class="cs-toast-close" onclick="document.getElementById('sellerToast').classList.remove('show')">
+        <i class="bi bi-x"></i>
+    </button>
+</div>
+
+@section Scripts {
+    <script>
+        var deleteListingId = null;
+
+        function showAddModal() {
+            new bootstrap.Modal(document.getElementById('addListingModal')).show();
+        }
+
+        function deleteListing(id, name) {
+            deleteListingId = id;
+            document.getElementById('deleteListingName').textContent = name;
+            new bootstrap.Modal(document.getElementById('deleteListingModal')).show();
+        }
+
+        function confirmDeleteListing() {
+            fetch('/Seller/DeleteListing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id=' + deleteListingId
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('deleteListingModal')).hide();
+                    showToast('Listing deleted successfully.');
+                    setTimeout(() => location.reload(), 1500);
+                }
+            });
+        }
+
+        function submitListing() {
+            const name = document.getElementById('listingName').value;
+            const price = document.getElementById('listingPrice').value;
+            const category = document.getElementById('listingCategory').value;
+            const condition = document.getElementById('listingCondition').value;
+            const includes = document.getElementById('listingIncludes').value;
+            const imageFile = document.getElementById('listingImage').files[0];
+
+            if (!name || !price || !includes) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('Name', name);
+            formData.append('Price', price);
+            formData.append('Category', category);
+            formData.append('Condition', condition);
+            formData.append('Includes', includes);
+            if (imageFile) formData.append('imageFile', imageFile);
+
+            fetch('/Seller/AddListing', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('addListingModal')).hide();
+                        showToast('Listing added successfully!');
+                        setTimeout(() => location.reload(), 1500);
+                    }
+                });
+        }
+
+        function showToast(msg) {
+            document.getElementById('sellerToastMsg').textContent = msg;
+            document.getElementById('sellerToast').classList.add('show');
+            setTimeout(() => document.getElementById('sellerToast').classList.remove('show'), 3000);
+        }
+    </script>
+}

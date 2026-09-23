@@ -45,6 +45,8 @@
                         <div class="cs-cart-item-info">
                             <div class="cs-cart-item-name">@item.Name</div>
                             <div class="cs-cart-item-price">@item.Price</div>
+                            <div class="text-muted" style="font-size:0.8rem; margin-top:0.25rem;">
+                            </div>
                         </div>
                         <button class="cs-cart-remove" onclick="removeItem('@item.Id')">
                             <i class="bi bi-trash me-1"></i>Remove
@@ -83,8 +85,16 @@
                 var badge = document.getElementById('cartBadge');
                 if (badge) badge.textContent = data.count;
 
+                // Show toast
+                var toast = document.createElement('div');
+                toast.className = 'cs-toast show';
+                toast.style.cssText = 'position:fixed; top:70px; right:1.5rem; z-index:9999;';
+                toast.innerHTML = '<div><i class="bi bi-trash me-2"></i><span>Item removed from cart.</span></div>';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+
                 if (data.count === 0) {
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 }
             });
         }

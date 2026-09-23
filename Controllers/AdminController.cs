@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Ctrl_Save.Models;
 
 namespace Ctrl_Save.Controllers
@@ -8,11 +9,13 @@ namespace Ctrl_Save.Controllers
     {
         private readonly Ctrl_SaveContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly IDistributedCache _cache;
 
-        public AdminController(Ctrl_SaveContext context, IWebHostEnvironment env)
+        public AdminController(Ctrl_SaveContext context, IWebHostEnvironment env, IDistributedCache cache)
         {
             _context = context;
             _env = env;
+            _cache = cache;
         }
 
         public async Task<IActionResult> Index()
@@ -142,6 +145,7 @@ namespace Ctrl_Save.Controllers
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
+            await ClearProductCache(product.Category);
             return Json(new { success = true, newId = product.Id });
         }
 
@@ -160,6 +164,7 @@ namespace Ctrl_Save.Controllers
             existing.Image = product.Image;
             existing.IsAvailable = product.IsAvailable;
             await _context.SaveChangesAsync();
+            await ClearProductCache(existing.Category);
             return Json(new { success = true });
         }
 
@@ -171,7 +176,15 @@ namespace Ctrl_Save.Controllers
             if (product == null) return NotFound();
             _context.Products.Remove(product);
             await _context.SaveChangesAsync();
+            await ClearProductCache(product.Category);
             return Json(new { success = true });
+        }
+
+        private async Task ClearProductCache(string category)
+        {
+            await _cache.RemoveAsync("all_products");
+            await _cache.RemoveAsync("available_products");
+            await _cache.RemoveAsync($"products_category_{category?.ToLower()}");
         }
     }
 }

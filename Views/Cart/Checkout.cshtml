@@ -1,9 +1,7 @@
 @model Ctrl_Save.Controllers.CheckoutViewModel
-
 @{
     ViewData["Title"] = "Checkout";
 }
-
 <div class="cs-breadcrumb">
     <div class="container-fluid">
         <nav aria-label="breadcrumb">
@@ -15,13 +13,11 @@
         </nav>
     </div>
 </div>
-
 <div class="container cs-checkout-page">
     <div class="row g-4">
         <div class="col-md-7">
             <form asp-action="PlaceOrder" method="post">
                 <p style="font-size:0.85rem; color:#888;"><span style="color:red;">*</span> Required fields</p>
-
                 <!-- Personal Details -->
                 <div class="cs-form-section mb-3">
                     <div class="cs-form-heading">Personal Details</div>
@@ -36,12 +32,13 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Phone Number <span style="color:red;">*</span></label>
-                            <input asp-for="Phone" class="form-control" placeholder="+264811234567" required
-                                   oninput="this.value = this.value.replace(/[^\d+]/g, '')" />
+                            <input asp-for="Phone" class="form-control" id="Phone" placeholder="+264811234567" required
+                                   oninput="this.value = this.value.replace(/[^\d+]/g, ''); validatePhone();" onblur="validatePhone();" maxlength="13"/>
+                            <div id="phoneError" class="text-danger mt-1" style="font-size:0.85rem; display:none;"></div>
+                            <small class="text-muted">Format: +26481, +26483, or +26485 followed by 7 digits</small>
                         </div>
                     </div>
                 </div>
-
                 <!-- Delivery Details -->
                 <div class="cs-form-section mb-3">
                     <div class="cs-form-heading">Delivery Details</div>
@@ -86,7 +83,6 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Payment Method -->
                 <div class="cs-form-section mb-3">
                     <div class="cs-form-heading">Payment Method <span style="color:red;">*</span></div>
@@ -112,7 +108,6 @@
                         <small class="mt-1 d-block">Accepted: Standard Bank BlueVoucher, FNB eWallet, Bank Windhoek EasyWallet, Nedbank MobiMoney</small>
                     </div>
                 </div>
-
                 <!-- Hidden items -->
                 @foreach (var item in Model.Items)
                 {
@@ -122,11 +117,9 @@
                     <input type="hidden" name="Items[@Model.Items.IndexOf(item)].Image" value="@item.Image" />
                     <input type="hidden" name="Items[@Model.Items.IndexOf(item)].Category" value="@item.Category" />
                 }
-
                 <button type="submit" id="placeOrderBtn" class="cs-btn cs-btn-added w-100 mt-2" disabled>Place Order</button>
             </form>
         </div>
-
         <!-- Order Summary -->
         <div class="col-md-5">
             <div class="cs-order-summary">
@@ -149,7 +142,6 @@
         </div>
     </div>
 </div>
-
 @section Scripts {
     <script>
         var cityRegions = {
@@ -162,20 +154,38 @@
             'Opuwo': 'Kunene', 'Nkurenkuru': 'Kavango West', 'Oshikango': 'Ohangwena',
             'Okahandja': 'Otjozondjupa', 'Karibib': 'Erongo', 'Usakos': 'Erongo'
         };
-
         function autoFillRegion() {
             var city = document.getElementById('citySelect').value;
             document.getElementById('regionInput').value = cityRegions[city] || '';
             validateCheckout();
         }
-
         document.querySelectorAll('input[name="PaymentMethod"]').forEach(function(radio) {
             radio.addEventListener('change', function() {
                 document.getElementById('eftInfo').style.display =
                     this.value === 'EFT' ? '' : 'none';
             });
         });
-
+        function validatePhone() {
+            var phone = document.getElementById('Phone').value.trim();
+            var errorDiv = document.getElementById('phoneError');
+            var validPrefixes = ['+26481', '+26483', '+26485'];
+            var hasValidPrefix = validPrefixes.some(function(p) { return phone.startsWith(p); });
+            if (!phone) {
+                errorDiv.style.display = 'none';
+            } else if (!hasValidPrefix) {
+                errorDiv.textContent = 'Phone number must start with +26481, +26483, or +26485.';
+                errorDiv.style.display = 'block';
+            } else if (phone.length < 13) {
+                errorDiv.textContent = 'Phone number is too short. Must be exactly 13 characters (e.g. +264811234567).';
+                errorDiv.style.display = 'block';
+            } else if (phone.length > 13) {
+                errorDiv.textContent = 'Phone number is too long. Must be exactly 13 characters (e.g. +264811234567).';
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.style.display = 'none';
+            }
+            validateCheckout();
+        }
         function validateCheckout() {
             var firstName = document.getElementById('FirstName').value.trim();
             var lastName = document.getElementById('LastName').value.trim();
@@ -183,12 +193,13 @@
             var address = document.getElementById('Address').value.trim();
             var city = document.getElementById('citySelect').value;
             var region = document.getElementById('regionInput').value.trim();
-            var valid = firstName && lastName && phone && address && city && region;
+            var validPrefixes = ['+26481', '+26483', '+26485'];
+            var phoneValid = validPrefixes.some(function(p) { return phone.startsWith(p); }) && phone.length === 13;
+            var valid = firstName && lastName && phoneValid && address && city && region;
             var btn = document.getElementById('placeOrderBtn');
             btn.disabled = !valid;
             btn.classList.toggle('cs-btn-added', !valid);
         }
-
         document.querySelectorAll('input, select').forEach(function(el) {
             el.addEventListener('input', validateCheckout);
             el.addEventListener('change', validateCheckout);
